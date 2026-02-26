@@ -183,9 +183,6 @@ StudyBuddy-ProAICoach/
 |---|---|---|
 | `POST` | `/api/generate-plan` | Generate AI study plan |
 | `POST` | `/api/generate-quiz` | Generate AI MCQ quiz |
-| `POST` | `/api/summarize-pdf` | Summarize uploaded PDF |
-| `POST` | `/api/import-plan-image` | Extract study plan from screenshot (Gemini Vision) |
-| `POST` | `/api/import-quiz-image` | Extract quiz from screenshot (Gemini Vision) |
 
 ---
 
