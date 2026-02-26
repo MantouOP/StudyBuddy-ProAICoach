@@ -18,7 +18,7 @@ app.post('/api/summarize-pdf', upload.single('pdf'), summarizePdf);
 app.post('/api/import-plan-image', upload.single('image'), importPlanFromImage);
 app.post('/api/import-quiz-image', upload.single('image'), importQuizFromImage);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}...`);
     console.log(`🧠 AI Engine: Ready to serve Organic Chemistry!`);
