@@ -193,14 +193,14 @@ StudyBuddy-ProAICoach/
 
 | Rank | Study Hours Required |
 |---|---|
-| 🔩 Iron Novice | 0h |
-| 🥈 Silver Scholar | 50h |
-| 🥇 Gold Academic | 150h |
-| 💠 Platinum Prodigy | 225h |
-| 💎 Diamond Researcher | 300h |
-| ☠️ Immortal Genius | 500h |
-| ✨ Radiant Polymath | 700h |
-| 🌌 Transcendent Luminary | 1000h |
+| 🔩 Iron Novice | 0 – 49 hrs |
+| 🥈 Silver Scholar | 50 – 149 hrs |
+| 🥇 Gold Academic | 150 – 224 hrs |
+| 💠 Platinum Prodigy | 225 – 299 hrs |
+| 💎 Diamond Researcher | 300 – 499 hrs |
+| ☠️ Immortal Genius | 500 – 999 hrs |
+| ✨ Radiant Polymath | 1000 – 1999 hrs |
+| 🌌 Transcendent Luminary | 2000+ hrs |
 
 ---
 
