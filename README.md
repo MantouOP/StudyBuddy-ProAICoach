@@ -212,7 +212,7 @@ Pull requests are welcome! For major changes, please open an issue first to disc
 
 ## 📄 License
 
-This project was built for **KitaHack 2026** by Team MantouOP.
+This project was built for **KitaHack 2026** by Team **DeepSick**.
 
 ---
 
