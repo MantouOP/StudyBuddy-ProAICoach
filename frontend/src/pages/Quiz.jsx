@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Loader, ArrowRight, CheckCircle, XCircle, History, ChevronLeft, Download, Upload, Trash2 } from 'lucide-react';
+import { Target, Loader, ArrowRight, CheckCircle, XCircle, History, ChevronLeft, Download, Trash2 } from 'lucide-react';
 import { doc, getDoc, updateDoc, collection, addDoc, getDocs, orderBy, query, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -7,6 +7,7 @@ const Quiz = ({ user }) => {
     // Generator States
     const [topic, setTopic] = useState('');
     const [questionCount, setQuestionCount] = useState(3);
+    const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -83,7 +84,7 @@ const Quiz = ({ user }) => {
             const res = await fetch('http://localhost:5000/api/generate-quiz', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ topic, count: questionCount })
+                body: JSON.stringify({ topic, count: questionCount, description })
             });
 
             if (!res.ok) throw new Error('Failed to generate quiz');
@@ -253,34 +254,6 @@ const Quiz = ({ user }) => {
         exportToPDF(reviewQuiz.questions, reviewQuiz.topic || 'Review_Quiz', reviewQuiz.score, reviewQuiz.total, reviewQuiz.userAnswers);
     };
 
-    const handleImportQuiz = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target.result);
-                if (data.type !== 'quiz' || !data.questions) {
-                    alert("Invalid Quiz file");
-                    return;
-                }
-                setTopic(data.topic || 'Imported Quiz');
-                setQuiz(data.questions);
-                setQuestionCount(data.questions.length);
-                setCurrentQIndex(0);
-                setScore(0);
-                setShowResult(false);
-                setIsAnswered(false);
-                setSelectedAnswers(new Array(data.questions.length).fill(null));
-                setReviewQuiz(null);
-
-                e.target.value = null;
-            } catch (err) {
-                alert("Failed to parse file");
-            }
-        };
-        reader.readAsText(file);
-    };
 
     return (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '2rem' }}>
@@ -326,14 +299,21 @@ const Quiz = ({ user }) => {
                                     style={{ width: '100%' }}
                                 />
                             </div>
+                            <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Description <span style={{ color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>(optional)</span></label>
+                                <textarea
+                                    className="input-field"
+                                    value={description}
+                                    onChange={e => setDescription(e.target.value)}
+                                    placeholder="e.g. Focus on Chapter 3 only, harder questions, avoid memory-based questions..."
+                                    rows={3}
+                                    style={{ resize: 'vertical', minHeight: '72px', width: '100%' }}
+                                />
+                            </div>
                             <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
                                 <button type="submit" className="btn-primary" disabled={loading} style={{ flex: 1 }}>
                                     {loading ? 'Generating...' : 'Generate Quiz'}
                                 </button>
-                                <label className="btn-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: '0.5rem 1rem' }} title="Import Quiz">
-                                    <Upload size={20} />
-                                    <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportQuiz} />
-                                </label>
                             </div>
                             {error && <p style={{ color: 'var(--danger)', marginTop: '1rem', fontSize: '0.9rem' }}>{error}</p>}
                         </form>

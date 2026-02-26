@@ -2,19 +2,26 @@
 
 :root {
   /* Color Palette */
-  --bg-primary: #0f172a;      /* Slate 900 */
-  --bg-secondary: #020617;    /* Slate 950 */
-  
-  --primary-accent: #6366f1;  /* Indigo 500 */
+  --bg-primary: #0f172a;
+  /* Slate 900 */
+  --bg-secondary: #020617;
+  /* Slate 950 */
+
+  --primary-accent: #6366f1;
+  /* Indigo 500 */
   --primary-glow: rgba(99, 102, 241, 0.4);
-  
-  --secondary-accent: #ec4899;/* Pink 500 */
+
+  --secondary-accent: #ec4899;
+  /* Pink 500 */
   --secondary-glow: rgba(236, 72, 153, 0.4);
 
-  --text-main: #f8fafc;       /* Slate 50 */
-  --text-muted: #94a3b8;      /* Slate 400 */
+  --text-main: #f8fafc;
+  /* Slate 50 */
+  --text-muted: #94a3b8;
+  /* Slate 400 */
 
-  --glass-bg: rgba(30, 41, 59, 0.4); /* Slate 800 with opacity */
+  --glass-bg: rgba(30, 41, 59, 0.4);
+  /* Slate 800 with opacity */
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 
@@ -36,7 +43,7 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   /* Add an animated gradient mesh background */
-  background-image: 
+  background-image:
     radial-gradient(circle at 15% 50%, var(--primary-glow), transparent 25%),
     radial-gradient(circle at 85% 30%, var(--secondary-glow), transparent 25%);
   background-attachment: fixed;
@@ -44,8 +51,13 @@ body {
 }
 
 @keyframes bgPulse {
-  0% { background-position: 0% 0%; }
-  100% { background-position: 100% 100%; }
+  0% {
+    background-position: 0% 0%;
+  }
+
+  100% {
+    background-position: 100% 100%;
+  }
 }
 
 /* Glassmorphism Utilities */
@@ -70,11 +82,16 @@ body {
 .glass-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
-  border-color: rgba(255,255,255,0.2);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -108,8 +125,11 @@ h1, h2, h3, h4, h5, h6 {
 .btn-primary::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -203,7 +223,8 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 0.5rem;
 }
 
-.nav-link:hover, .nav-link.active {
+.nav-link:hover,
+.nav-link.active {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-main);
 }
@@ -219,8 +240,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Pulse animation for active states */
@@ -234,7 +262,126 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+/* ----------- DUNGEON STYLE AVATAR BORDERS ----------- */
+
+.dungeon-border-iron {
+  border: 6px solid #4A4A4A !important;
+  box-shadow: none !important;
+}
+
+.dungeon-border-silver {
+  border: 6px solid #B0C4DE !important;
+  border-top-color: #FFFFFF !important;
+  border-bottom-color: #9CA3AF !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dungeon-border-gold {
+  border: 6px solid #FFD700 !important;
+  border-top-color: #FFF275 !important;
+  border-bottom-color: #DAA520 !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Double-layered ring */
+.dungeon-border-platinum {
+  border: 3px solid #FFFFFF !important;
+  box-shadow: 0 0 0 3px #20B2AA, 0 4px 10px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Crystalline cyan dash */
+.dungeon-border-diamond {
+  border: 6px dashed #00FFFF !important;
+  box-shadow: 0 0 15px #00BFFF !important;
+  animation: diamond-pulse 2s infinite alternate;
+}
+
+/* Deep crimson and purple sweep */
+.dungeon-border-immortal {
+  border: 6px solid #DC143C !important;
+  border-left-color: #800080 !important;
+  border-right-color: #800080 !important;
+  box-shadow: 0 4px 12px rgba(220, 20, 60, 0.5) !important;
+}
+
+/* Glowing luminous core */
+.dungeon-border-radiant {
+  border: 3px solid #FFFDD0 !important;
+  box-shadow: 0 0 0 3px #FFDF00, 0 0 15px 5px rgba(255, 223, 0, 0.6) !important;
+}
+
+/* Cosmic purple space sweep */
+.dungeon-border-transcendent {
+  border: 6px solid #FF00FF !important;
+  border-top-color: #000000 !important;
+  border-bottom-color: #4B0082 !important;
+  box-shadow: 0 0 15px #FF00FF, inset 0 0 10px #4B0082 !important;
+  animation: cosmic-rotate 3s linear infinite;
+}
+
+@keyframes diamond-pulse {
+  0% {
+    border-color: #00FFFF;
+    box-shadow: 0 0 10px #00BFFF;
+  }
+
+  100% {
+    border-color: #00BFFF;
+    box-shadow: 0 0 20px #00FFFF, inset 0 0 10px #00FFFF;
+  }
+}
+
+@keyframes cosmic-rotate {
+  0% {
+    border-top-color: #000000;
+    border-right-color: #FF00FF;
+    border-bottom-color: #4B0082;
+    border-left-color: #FF00FF;
+    box-shadow: 0 0 15px #FF00FF;
+  }
+
+  25% {
+    border-top-color: #FF00FF;
+    border-right-color: #4B0082;
+    border-bottom-color: #FF00FF;
+    border-left-color: #000000;
+    box-shadow: 0 0 15px #4B0082;
+  }
+
+  50% {
+    border-top-color: #4B0082;
+    border-right-color: #FF00FF;
+    border-bottom-color: #000000;
+    border-left-color: #FF00FF;
+    box-shadow: 0 0 15px #000000;
+  }
+
+  75% {
+    border-top-color: #FF00FF;
+    border-right-color: #000000;
+    border-bottom-color: #FF00FF;
+    border-left-color: #4B0082;
+    box-shadow: 0 0 15px #FF00FF;
+  }
+
+  100% {
+    border-top-color: #000000;
+    border-right-color: #FF00FF;
+    border-bottom-color: #4B0082;
+    border-left-color: #FF00FF;
+    box-shadow: 0 0 15px #FF00FF;
+  }
 }

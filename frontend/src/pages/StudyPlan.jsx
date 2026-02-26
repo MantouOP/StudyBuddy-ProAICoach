@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, BookOpen, Loader, Save, Download, Upload, Trash2, ChevronLeft } from 'lucide-react';
+import { Calendar, BookOpen, Loader, Save, Download, Trash2, ChevronLeft } from 'lucide-react';
 import { doc, collection, addDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -8,6 +8,7 @@ const StudyPlan = ({ user }) => {
     const [examDate, setExamDate] = useState('');
     const [examTime, setExamTime] = useState('');
     const [dailyHours, setDailyHours] = useState('');
+    const [description, setDescription] = useState('');
     const [plan, setPlan] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -77,7 +78,7 @@ const StudyPlan = ({ user }) => {
             const res = await fetch('http://localhost:5000/api/generate-plan', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject, examDate, examTime, dailyHours })
+                body: JSON.stringify({ subject, examDate, examTime, dailyHours, description })
             });
 
             if (!res.ok) throw new Error('Failed to fetch from API');
@@ -192,28 +193,6 @@ const StudyPlan = ({ user }) => {
         });
     };
 
-    const handleImportPlan = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target.result);
-                if (data.type !== 'study_plan' || !data.planSchema) {
-                    alert("Invalid Study Plan file");
-                    return;
-                }
-                setSubject(data.subject || '');
-                setExamDate(data.examDate || '');
-                setPlan(data.planSchema);
-                // Reset file input
-                e.target.value = null;
-            } catch (err) {
-                alert("Failed to parse file");
-            }
-        };
-        reader.readAsText(file);
-    };
 
     return (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -231,6 +210,17 @@ const StudyPlan = ({ user }) => {
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>Subject</label>
                             <input type="text" className="input-field" value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Organic Chemistry" required />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>Description <span style={{ color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>(optional)</span></label>
+                            <textarea
+                                className="input-field"
+                                value={description}
+                                onChange={e => setDescription(e.target.value)}
+                                placeholder="e.g. Focus on chapters 1-5, weak in thermodynamics, prefer active recall..."
+                                rows={3}
+                                style={{ resize: 'vertical', minHeight: '72px' }}
+                            />
                         </div>
                         <div style={{ display: 'flex', gap: '1rem' }}>
                             <div style={{ flex: 1 }}>
@@ -250,10 +240,6 @@ const StudyPlan = ({ user }) => {
                             <button type="submit" className="btn-primary" disabled={loading} style={{ flex: 1 }}>
                                 {loading ? <><Loader className="spin" size={20} /> Generating...</> : 'Generate Smart Plan'}
                             </button>
-                            <label className="btn-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: '0.5rem 1rem' }} title="Import Plan">
-                                <Upload size={20} />
-                                <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImportPlan} />
-                            </label>
                         </div>
                         {error && <p style={{ color: 'var(--danger)', fontSize: '0.875rem', marginTop: '0.5rem' }}>{error}</p>}
                     </form>

@@ -12,7 +12,7 @@ const safetySettings = [
 
 const generatePlan = async (req, res) => {
   try {
-    const { subject, examDate, examTime, dailyHours } = req.body;
+    const { subject, examDate, examTime, dailyHours, description } = req.body;
 
     // Validation
     if (!subject || typeof subject !== 'string' || subject.trim().length < 2) {
@@ -31,6 +31,7 @@ const generatePlan = async (req, res) => {
     const today = new Date().toLocaleDateString('en-MY', { timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'full' });
     const prompt = `Act as an expert Learning Coach. Today is ${today}. Create a spaced-repetition study plan for ${subject}. 
     Exam Date: ${examDate}${examTime ? ` at ${examTime}` : ''}, Daily Hours: ${dailyHours}.
+    ${description ? `Additional context from the student: "${description}"` : ''}
     CRITICAL: Limit your plan to a MAXIMUM of 7 to 10 key milestones or weeks to ensure a concise, high-level overview. Do not generate a day-by-day plan if the exam is far away.
     Return ONLY raw JSON in this format: {"plan": [{"day": "Week 1 (or Day 1)", "topics": [], "focus": "", "duration": ""}]}`;
 
@@ -49,7 +50,7 @@ const generatePlan = async (req, res) => {
 
 const generateQuiz = async (req, res) => {
   try {
-    const { topic, count } = req.body;
+    const { topic, count, description } = req.body;
 
     // Validation
     if (!topic || typeof topic !== 'string' || topic.trim().length < 2) {
@@ -61,7 +62,7 @@ const generateQuiz = async (req, res) => {
     }
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', safetySettings });
-    const prompt = `Generate a ${count || 3} question MCQ quiz on ${topic}. Return ONLY JSON: {"quiz": [{"question": "", "options": [], "correctAnswer": "", "explanation": ""}]}`;
+    const prompt = `Generate a ${count || 3} question MCQ quiz on ${topic}.${description ? ` Focus specifically on: "${description}".` : ''} Return ONLY JSON: {"quiz": [{"question": "", "options": [], "correctAnswer": "", "explanation": ""}]}`;
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
@@ -115,4 +116,82 @@ const summarizePdf = async (req, res) => {
   }
 };
 
-module.exports = { generatePlan, generateQuiz, summarizePdf };
+const importPlanFromImage = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+
+    const imageBase64 = req.file.buffer.toString('base64');
+    const mimeType = req.file.mimetype;
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', safetySettings });
+
+    const prompt = `You are a study plan extractor. The user has uploaded a screenshot of a study plan.
+    Extract the study plan information from this image and return it as ONLY raw JSON (no markdown, no backticks) in exactly this format:
+    {
+      "type": "study_plan",
+      "subject": "<subject name>",
+      "examDate": "<YYYY-MM-DD or empty string if not visible>",
+      "planSchema": [
+        { "day": "<Day/Week label>", "topics": ["<topic1>", "<topic2>"], "focus": "<main focus>", "duration": "<e.g. 2 hours>" }
+      ]
+    }
+    If you cannot extract a valid study plan from the image, return: {"error": "Could not extract a study plan from this image."}`;
+
+    const result = await model.generateContent([
+      prompt,
+      { inlineData: { mimeType, data: imageBase64 } }
+    ]);
+
+    const responseText = result.response.text().replace(/```json|```/gi, '').trim();
+    const parsedData = JSON.parse(responseText);
+
+    if (parsedData.error) return res.status(422).json({ error: parsedData.error });
+    res.json(parsedData);
+  } catch (error) {
+    console.error('🚨 Image Plan Import Error:', error.message);
+    res.status(500).json({ error: 'Failed to extract study plan from image.' });
+  }
+};
+
+const importQuizFromImage = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+
+    const imageBase64 = req.file.buffer.toString('base64');
+    const mimeType = req.file.mimetype;
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', safetySettings });
+
+    const prompt = `You are a quiz extractor. The user has uploaded a screenshot of a quiz or set of questions.
+    Extract all questions from this image and return ONLY raw JSON (no markdown, no backticks) in exactly this format:
+    {
+      "type": "quiz",
+      "topic": "<topic of the quiz>",
+      "questions": [
+        {
+          "question": "<question text>",
+          "options": ["<option A>", "<option B>", "<option C>", "<option D>"],
+          "correctAnswer": "<the correct option text>",
+          "explanation": "<brief explanation of why this is correct>"
+        }
+      ]
+    }
+    If you cannot extract quiz questions from the image, return: {"error": "Could not extract quiz questions from this image."}`;
+
+    const result = await model.generateContent([
+      prompt,
+      { inlineData: { mimeType, data: imageBase64 } }
+    ]);
+
+    const responseText = result.response.text().replace(/```json|```/gi, '').trim();
+    const parsedData = JSON.parse(responseText);
+
+    if (parsedData.error) return res.status(422).json({ error: parsedData.error });
+    res.json(parsedData);
+  } catch (error) {
+    console.error('🚨 Image Quiz Import Error:', error.message);
+    res.status(500).json({ error: 'Failed to extract quiz from image.' });
+  }
+};
+
+module.exports = { generatePlan, generateQuiz, summarizePdf, importPlanFromImage, importQuizFromImage };

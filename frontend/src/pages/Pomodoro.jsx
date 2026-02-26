@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, Coffee, Brain, History, Trash2, Download, Settings, X, Save } from 'lucide-react';
 import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc, getDocs, query, orderBy, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import html2pdf from 'html2pdf.js';
 
 const POMODORO_STATE_KEY = 'pomodoroState';
 
@@ -185,21 +186,21 @@ const Pomodoro = ({ user }) => {
 
         const opt = {
             margin: 10,
-            filename: `Focus_Report_${new Date().toLocaleDateString().replace(/\\/ / g, '-')}.pdf`,
+            filename: `Focus_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        import('html2pdf.js').then(html2pdf => {
-            html2pdf.default().set(opt).from(printContent).save().then(() => {
+        try {
+            html2pdf().set(opt).from(printContent).save().then(() => {
                 document.body.removeChild(printContent);
             });
-        }).catch(err => {
-            console.error("Failed to load html2pdf", err);
+        } catch (err) {
+            console.error("Failed to export PDF", err);
             document.body.removeChild(printContent);
             alert("Failed to export PDF.");
-        });
+        }
     };
 
     useEffect(() => {

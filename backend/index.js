@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { generatePlan, generateQuiz, summarizePdf } = require('./controllers/aiController');
+const { generatePlan, generateQuiz, summarizePdf, importPlanFromImage, importQuizFromImage } = require('./controllers/aiController');
 const multer = require('multer');
 
 const app = express();
@@ -15,6 +15,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.post('/api/generate-plan', generatePlan);
 app.post('/api/generate-quiz', generateQuiz);
 app.post('/api/summarize-pdf', upload.single('pdf'), summarizePdf);
+app.post('/api/import-plan-image', upload.single('image'), importPlanFromImage);
+app.post('/api/import-quiz-image', upload.single('image'), importQuizFromImage);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Mail, GraduationCap, BookOpen, Clock, Trophy, Medal, Star, Crown, Zap, Code, Terminal, Brain, ArrowLeft } from 'lucide-react';
+import { getBorderClass } from '../utils/borders';
 
 const FriendProfile = () => {
     const { uid } = useParams();
@@ -74,13 +75,6 @@ const FriendProfile = () => {
     const rank = getRankInfo(studyHours);
     const progressPercent = rank.nextAt ? (studyHours / rank.nextAt) * 100 : 100;
 
-    const badges = [
-        { id: 1, title: 'Night Owl', desc: 'Studied past midnight', icon: <Zap color="#fbbf24" size={24} />, glow: 'rgba(251, 191, 36, 0.4)', achieved: false },
-        { id: 2, title: 'Java Architect', desc: 'Completed 10 programming quizzes', icon: <Code color="#60a5fa" size={24} />, glow: 'rgba(96, 165, 250, 0.4)', achieved: false },
-        { id: 3, title: 'CSO Survivor', desc: 'Finished Systems study plan', icon: <Terminal color="#34d399" size={24} />, glow: 'rgba(52, 211, 153, 0.4)', achieved: false },
-        { id: 4, title: 'Discrete Math Wizard', desc: 'Perfect score on 3 combinatorics', icon: <Brain color="#a78bfa" size={24} />, glow: 'rgba(167, 139, 250, 0.4)', achieved: false },
-    ];
-
     // Status Helper
     const getStatusStr = (lastActiveTimeStr) => {
         if (!lastActiveTimeStr) return { text: 'Offline', color: 'var(--text-muted)' };
@@ -116,13 +110,14 @@ const FriendProfile = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                     <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
                         <div
+                            className={friendData?.equippedBorder ? getBorderClass(friendData.equippedBorder) : ''}
                             style={{
                                 width: '80px', height: '80px', borderRadius: '50%',
                                 background: 'linear-gradient(135deg, var(--primary-accent), var(--secondary-accent))',
                                 display: 'flex', justifyContent: 'center', alignItems: 'center',
                                 fontSize: '2.5rem', fontWeight: 'bold', color: 'white',
-                                boxShadow: friendData?.equippedBorder ? `0 0 20px ${friendData.equippedBorder}` : '0 8px 32px rgba(236, 72, 153, 0.4)',
-                                border: friendData?.equippedBorder ? `3px solid ${friendData.equippedBorder}` : 'none',
+                                boxShadow: friendData?.equippedBorder ? 'none' : '0 8px 32px rgba(236, 72, 153, 0.4)',
+                                border: 'none',
                                 overflow: 'hidden'
                             }}
                         >
@@ -134,19 +129,24 @@ const FriendProfile = () => {
                         </div>
                         <div>
                             <h2 style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>{displayName}</h2>
-                            <span style={{
-                                display: 'inline-block',
-                                padding: '0.25rem 0.75rem',
-                                background: 'rgba(99, 102, 241, 0.1)',
-                                border: '1px solid rgba(99, 102, 241, 0.2)',
-                                borderRadius: '99px',
-                                color: 'var(--primary-accent)',
-                                fontSize: '0.875rem',
-                                fontWeight: '500',
-                                marginTop: '0.5rem'
-                            }}>
-                                {friendData.university || 'Universiti Malaya'}
-                            </span>
+                            {(friendData.showUniversity !== false || friendData.showMajor !== false) && (
+                                <span style={{
+                                    display: 'inline-block',
+                                    padding: '0.25rem 0.75rem',
+                                    background: 'rgba(99, 102, 241, 0.1)',
+                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    borderRadius: '99px',
+                                    color: 'var(--primary-accent)',
+                                    fontSize: '0.875rem',
+                                    fontWeight: '500',
+                                    marginTop: '0.5rem'
+                                }}>
+                                    {[
+                                        friendData.showUniversity !== false ? (friendData.university || 'Not specified') : null,
+                                        friendData.showMajor !== false && friendData.major ? friendData.major : null
+                                    ].filter(Boolean).join(' • ')}
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -221,9 +221,9 @@ const FriendProfile = () => {
                             <div style={{
                                 padding: '1rem', background: 'rgba(255,255,255,0.02)',
                                 borderRadius: '12px', border: '1px solid var(--glass-border)',
-                                color: friendData.university ? 'var(--text-main)' : 'var(--text-muted)'
+                                color: friendData.showUniversity !== false ? (friendData.university ? 'var(--text-main)' : 'var(--text-muted)') : 'var(--text-muted)'
                             }}>
-                                {friendData.university || 'Not specified'}
+                                {friendData.showUniversity !== false ? (friendData.university || 'Not specified') : 'Hidden by user'}
                             </div>
                         </div>
 
@@ -232,9 +232,9 @@ const FriendProfile = () => {
                             <div style={{
                                 padding: '1rem', background: 'rgba(255,255,255,0.02)',
                                 borderRadius: '12px', border: '1px solid var(--glass-border)',
-                                color: friendData.major ? 'var(--text-main)' : 'var(--text-muted)'
+                                color: friendData.showMajor !== false ? (friendData.major ? 'var(--text-main)' : 'var(--text-muted)') : 'var(--text-muted)'
                             }}>
-                                {friendData.major || 'Not specified'}
+                                {friendData.showMajor !== false ? (friendData.major || 'Not specified') : 'Hidden by user'}
                             </div>
                         </div>
 
@@ -248,46 +248,6 @@ const FriendProfile = () => {
                                 {friendData.friends ? friendData.friends.length : 0} Connections
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* Badges & Achievements */}
-                <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-main)', margin: 0 }}>
-                        <Medal size={24} color="var(--warning)" />
-                        Badges & Achievements
-                    </h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-                        {displayName}'s collected accomplishment badges.
-                    </p>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.5rem' }}>
-                        {badges.filter(b => b.achieved).length > 0 ? (
-                            badges.filter(b => b.achieved).map(badge => (
-                                <div key={badge.id} style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '1rem',
-                                    padding: '0.5rem',
-                                    filter: badge.achieved ? 'none' : 'grayscale(100%) opacity(0.6)',
-                                }}>
-                                    <div style={{
-                                        background: badge.achieved ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)',
-                                        padding: '1rem',
-                                        borderRadius: '50%',
-                                        boxShadow: badge.achieved ? `0 0 20px ${badge.glow}` : 'none',
-                                    }}>
-                                        {badge.icon}
-                                    </div>
-                                    <div>
-                                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', color: badge.achieved ? 'var(--text-main)' : 'var(--text-muted)' }}>{badge.title}</h4>
-                                        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>{badge.desc}</p>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', padding: '1rem 0' }}>No badges achieved yet.</p>
-                        )}
                     </div>
                 </div>
             </div>

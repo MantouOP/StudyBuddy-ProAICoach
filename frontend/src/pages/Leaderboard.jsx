@@ -3,6 +3,7 @@ import { collection, query, orderBy, limit, getDocs, doc, getDoc, updateDoc, arr
 import { db } from '../firebase';
 import { Trophy, Medal, Crown, Star, UserPlus, Search, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getBorderClass } from '../utils/borders';
 
 const AVATAR_API = "https://api.dicebear.com/9.x/bottts/svg?seed=";
 
@@ -153,7 +154,7 @@ const Leaderboard = ({ user }) => {
                         {searchResults.map(resultuser => (
                             <div key={resultuser.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '12px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: resultuser.equippedBorder ? `2px solid ${resultuser.equippedBorder}` : 'none', boxShadow: resultuser.equippedBorder ? `0 0 10px ${resultuser.equippedBorder}` : 'none', overflow: 'hidden', flexShrink: 0 }}>
+                                    <div className={resultuser.equippedBorder ? getBorderClass(resultuser.equippedBorder) : ''} style={{ width: '40px', height: '40px', borderRadius: '50%', border: 'none', boxShadow: 'none', overflow: 'hidden', flexShrink: 0 }}>
                                         <img src={resultuser.photoURL || `${AVATAR_API}${resultuser.username}`} alt="Avatar" style={{ width: '100%', height: '100%', background: 'rgba(255,255,255,0.1)', objectFit: 'cover' }} />
                                     </div>
                                     <div>
@@ -214,7 +215,7 @@ const Leaderboard = ({ user }) => {
                                     </div>
 
                                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: topUser.equippedBorder ? `2px solid ${topUser.equippedBorder}` : 'none', boxShadow: topUser.equippedBorder ? `0 0 10px ${topUser.equippedBorder}` : 'none', overflow: 'hidden', flexShrink: 0 }}>
+                                        <div className={topUser.equippedBorder ? getBorderClass(topUser.equippedBorder) : ''} style={{ width: '48px', height: '48px', borderRadius: '50%', border: 'none', boxShadow: 'none', overflow: 'hidden', flexShrink: 0 }}>
                                             <img src={topUser.photoURL || `${AVATAR_API}${topUser.username || 'default'}`} alt="Avatar" style={{ width: '100%', height: '100%', background: 'rgba(255,255,255,0.1)', objectFit: 'cover' }} />
                                         </div>
 

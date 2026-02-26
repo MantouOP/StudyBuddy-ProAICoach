@@ -11,6 +11,11 @@ const Signup = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // For Google sign-in username prompt
+    const [pendingGoogleUser, setPendingGoogleUser] = useState(null);
+    const [googleUsername, setGoogleUsername] = useState('');
+
     const navigate = useNavigate();
 
     const handleEmailSignup = async (e) => {
@@ -25,7 +30,6 @@ const Signup = () => {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-            // Initialize Firestore document
             await setDoc(doc(db, 'users', userCredential.user.uid), {
                 uid: userCredential.user.uid,
                 username: username.trim(),
@@ -48,35 +52,81 @@ const Signup = () => {
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
 
-            // Check if user document already exists
             const userDocRef = doc(db, 'users', user.uid);
             const userDocSnap = await getDoc(userDocRef);
 
-            if (!userDocSnap.exists()) {
-                // Determine a username to save (fallback to email prefix if display name is null)
-                let usernameToSave = user.displayName;
-                if (!usernameToSave) {
-                    usernameToSave = user.email.split('@')[0];
-                }
-
-                // Initialize Firestore document for new Google user
-                await setDoc(userDocRef, {
-                    uid: user.uid,
-                    username: usernameToSave,
-                    email: user.email,
-                    totalStudyHours: 0,
-                    friends: []
-                });
+            if (userDocSnap.exists()) {
+                // Returning user — just navigate in
+                navigate('/');
+            } else {
+                // New Google user — require them to choose a username
+                setPendingGoogleUser(user);
             }
-
-            navigate('/');
         } catch (err) {
             setError('Google sign-in failed: ' + err.message);
         }
         setLoading(false);
     };
 
+    const handleFinishGoogleSignup = async (e) => {
+        e.preventDefault();
+        setError('');
+        if (googleUsername.trim().length < 3) {
+            return setError('Username must be at least 3 characters.');
+        }
+        setLoading(true);
+        try {
+            const userDocRef = doc(db, 'users', pendingGoogleUser.uid);
+            await setDoc(userDocRef, {
+                uid: pendingGoogleUser.uid,
+                username: googleUsername.trim(),
+                email: pendingGoogleUser.email,
+                photoURL: pendingGoogleUser.photoURL || '',
+                totalStudyHours: 0,
+                friends: []
+            });
+            navigate('/');
+        } catch (err) {
+            setError('Failed to save username: ' + err.message);
+        }
+        setLoading(false);
+    };
 
+    // --- Username prompt screen for new Google users ---
+    if (pendingGoogleUser) {
+        return (
+            <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
+                <div className="glass-card fade-in" style={{ maxWidth: '400px', width: '100%', padding: '2.5rem' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                        <BrainCircuit size={48} color="var(--secondary-accent)" style={{ marginBottom: '1rem', margin: '0 auto' }} />
+                        <h2 className="text-gradient" style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>
+                            One Last Step!
+                        </h2>
+                        <p style={{ color: 'var(--text-muted)' }}>
+                            Choose a unique username for your StudyBuddy profile.
+                        </p>
+                    </div>
+
+                    {error && <div style={{ color: 'var(--danger)', marginBottom: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>{error}</div>}
+
+                    <form onSubmit={handleFinishGoogleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <input
+                            type="text"
+                            placeholder="Choose a username (min. 3 chars)"
+                            className="input-field"
+                            value={googleUsername}
+                            onChange={(e) => setGoogleUsername(e.target.value)}
+                            required
+                            autoFocus
+                        />
+                        <button type="submit" className="btn-primary" disabled={loading}>
+                            {loading ? 'Saving...' : 'Finish Sign Up'}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
@@ -155,3 +205,4 @@ const Signup = () => {
 };
 
 export default Signup;
+

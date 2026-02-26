@@ -4,6 +4,7 @@ import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, 
 import { db } from '../firebase';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Users, Search, Activity, Trophy, UserPlus, Check, X, Clock, UserMinus, Medal, Star, Crown, Info, Inbox, Sun, Cloud, CloudRain, Sunrise } from 'lucide-react';
+import { getBorderClass } from '../utils/borders';
 
 const Dashboard = ({ user }) => {
     const navigate = useNavigate();
@@ -501,7 +502,7 @@ const Dashboard = ({ user }) => {
                                 ) : (
                                     <>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-accent), var(--secondary-accent))', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', overflow: 'hidden', border: searchResult.equippedBorder ? `2px solid ${searchResult.equippedBorder}` : 'none', boxShadow: searchResult.equippedBorder ? `0 0 10px ${searchResult.equippedBorder}` : 'none' }}>
+                                            <div className={searchResult.equippedBorder ? getBorderClass(searchResult.equippedBorder) : ''} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-accent), var(--secondary-accent))', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', overflow: 'hidden', border: 'none', boxShadow: 'none' }}>
                                                 {searchResult.photoURL ? <img src={searchResult.photoURL} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (searchResult.username || searchResult.email)?.toString().charAt(0).toUpperCase()}
                                             </div>
                                             <div>
@@ -547,7 +548,7 @@ const Dashboard = ({ user }) => {
                                             style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
                                         >
                                             <div style={{ position: 'relative' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-accent), var(--secondary-accent))', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', overflow: 'hidden', border: friend.equippedBorder ? `2px solid ${friend.equippedBorder}` : 'none', boxShadow: friend.equippedBorder ? `0 0 10px ${friend.equippedBorder}` : 'none' }}>
+                                                <div className={friend.equippedBorder ? getBorderClass(friend.equippedBorder) : ''} style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-accent), var(--secondary-accent))', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', overflow: 'hidden', border: 'none', boxShadow: 'none' }}>
                                                     {friend.photoURL ? <img src={friend.photoURL} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (friend.username || friend.email)?.toString().charAt(0).toUpperCase()}
                                                 </div>
                                                 {statusInfo.isOnline && (
@@ -782,7 +783,14 @@ const Dashboard = ({ user }) => {
                                     border: `1px solid ${tier.color}44`
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <div style={{ background: `radial-gradient(circle, ${tier.color}22, transparent)`, padding: '0.5rem', borderRadius: '50%' }}>
+                                        {/* Border Preview Avatar */}
+                                        <div style={{
+                                            width: '40px', height: '40px', borderRadius: '50%',
+                                            background: 'var(--bg-secondary)', display: 'flex',
+                                            justifyContent: 'center', alignItems: 'center',
+                                            border: `2px solid ${tier.color}`,
+                                            boxShadow: `0 0 10px ${tier.color}`
+                                        }}>
                                             {tier.icon}
                                         </div>
                                         <h4 style={{ color: tier.color, margin: 0, fontSize: '1.1rem' }}>{tier.title}</h4>
