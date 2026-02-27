@@ -75,7 +75,7 @@ const StudyPlan = ({ user }) => {
         setPlan(null);
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/generate-plan`, {
+            const res = await fetch('/api/generate-plan', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ subject, examDate, examTime, dailyHours, description })
