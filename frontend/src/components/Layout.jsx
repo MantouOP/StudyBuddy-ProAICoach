@@ -17,7 +17,7 @@ const Layout = () => {
             <aside className="sidebar">
                 <div style={{ marginBottom: '2.5rem', padding: '0 10px' }}>
                     <h1 className="text-gradient" style={{ fontSize: '1.75rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <BrainCircuit size={32} color="#6366f1" />
+                        <img src="/logo.png" alt="StudyBuddy Logo" style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px' }} />
                         StudyBuddy
                     </h1>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>Pro AI Coach</p>
