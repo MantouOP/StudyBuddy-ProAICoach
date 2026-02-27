@@ -1,22 +1,25 @@
-const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-const safetySettings = [
-    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-];
-
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
+
+        const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(apiKey);
+
+        const safetySettings = [
+            { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        ];
+
         const { subject, examDate, examTime, dailyHours, description } = req.body;
 
         if (!subject || typeof subject !== 'string' || subject.trim().length < 2)
@@ -32,7 +35,7 @@ module.exports = async (req, res) => {
         const prompt = `Act as an expert Learning Coach. Today is ${today}. Create a spaced-repetition study plan for ${subject}. 
     Exam Date: ${examDate}${examTime ? ` at ${examTime}` : ''}, Daily Hours: ${dailyHours}.
     ${description ? `Additional context from the student: "${description}"` : ''}
-    CRITICAL: Limit your plan to a MAXIMUM of 7 to 10 key milestones or weeks to ensure a concise, high-level overview. Do not generate a day-by-day plan if the exam is far away.
+    CRITICAL: Limit your plan to a MAXIMUM of 7 to 10 key milestones or weeks. Do not generate a day-by-day plan if the exam is far away.
     Return ONLY raw JSON in this format: {"plan": [{"day": "Week 1 (or Day 1)", "topics": [], "focus": "", "duration": ""}]}`;
 
         const result = await model.generateContent(prompt);
