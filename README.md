@@ -5,14 +5,25 @@
 **The ultimate gamified AI study companion for students.**  
 Track every study session, level up through ranks, earn borders & titles, generate AI-powered plans and quizzes — all in one premium web app.
 
+[![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-study--buddy--pro--ai--coach.vercel.app-6366f1?style=for-the-badge)](https://study-buddy-pro-ai-coach.vercel.app/login)
+
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com)
 [![Gemini AI](https://img.shields.io/badge/Google-Gemini%202.5%20Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev)
 [![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
 </div>
 
 ---
+
+## 🌐 Live Demo
+
+> **Try it now →** [https://study-buddy-pro-ai-coach.vercel.app/login](https://study-buddy-pro-ai-coach.vercel.app/login)
+
+The app is fully deployed and live on Vercel. Sign up with Google or email and start tracking your study sessions instantly — no local setup required.
+
+
 
 ## ✨ Features
 
@@ -79,23 +90,28 @@ Track every study session, level up through ranks, earn borders & titles, genera
 | **AI** | Google Gemini 2.5 Flash (text + vision) |
 | **Icons** | Lucide React |
 | **PDF Export** | html2pdf.js |
+| **Hosting** | Vercel (frontend) |
 
 ---
 
 ## 🚀 Getting Started
 
-### Prerequisites
+> **Just want to try it?** Visit the live app at **[study-buddy-pro-ai-coach.vercel.app](https://study-buddy-pro-ai-coach.vercel.app/login)** — no setup needed!
+
+### Self-Hosting / Local Development
+
+#### Prerequisites
 - Node.js 18+
 - A Firebase project with Firestore and Authentication enabled
 - A Google Gemini API key
 
-### 1. Clone the repository
+#### 1. Clone the repository
 ```bash
 git clone https://github.com/MantouOP/StudyBuddy-ProAICoach.git
 cd StudyBuddy-ProAICoach
 ```
 
-### 2. Set up the Backend
+#### 2. Set up the Backend
 ```bash
 cd backend
 npm install
@@ -111,7 +127,7 @@ Start the backend:
 node index.js
 ```
 
-### 3. Set up the Frontend
+#### 3. Set up the Frontend
 ```bash
 cd frontend
 npm install
