@@ -150,7 +150,7 @@ const StudyAnalysis = ({ user }) => {
                     <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Daily Study Time (Last 7 Days)</h3>
                     <div style={{ height: '300px', width: '100%' }}>
                         {barData.length > 0 && barData.some(b => b.minutes > 0) ? (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" debounce={50}>
                                 <BarChart data={barData}>
                                     <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                                     <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatTime} />
@@ -175,7 +175,7 @@ const StudyAnalysis = ({ user }) => {
                     <h3 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>Subject Breakdown</h3>
                     <div style={{ height: '300px', width: '100%' }}>
                         {pieData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" debounce={50}>
                                 <PieChart>
                                     <Pie
                                         data={pieData}

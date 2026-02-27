@@ -87,7 +87,10 @@ const Quiz = ({ user }) => {
                 body: JSON.stringify({ topic, count: questionCount, description })
             });
 
-            if (!res.ok) throw new Error('Failed to generate quiz');
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || 'Failed to generate quiz');
+            }
 
             const data = await res.json();
             setQuiz(data.quiz);
