@@ -201,7 +201,59 @@ StudyBuddy-ProAICoach/
 
 ---
 
+## 🏗️ Technical Architecture
+
+> **Flow:** React ➔ Express ➔ Firebase & Gemini
+
+| Layer | Description |
+|---|---|
+| **Frontend** | React 18 & Vite for a lightning-fast UI, styled with custom Vanilla CSS for gamified elements (dungeon borders) |
+| **Backend** | Node.js & Express to securely route API calls and handle AI prompt wrappers |
+| **Data & Auth** | Firebase Authentication for secure logins and Firestore as our real-time NoSQL database tracking XP, hours, and crews |
+| **AI Engine** | Gemini 2.5 Flash powering the study plans, dynamic MCQs, and context-aware AI coaching |
+
+---
+
+## ⚙️ Implementation — Gamification Engine
+
+1. **Action to Reward** — Users start the built-in Pomodoro timer to study
+2. **Real-time Tracking** — Completed session minutes are instantly written to Firestore
+3. **XP Progression** — Total hours automatically update the user's rank on the global Leaderboard
+4. **Loot System** — Hitting milestones triggers the in-app Mailbox, delivering equippable custom CSS avatar borders and 100 unlockable titles
+
+---
+
+## 🤖 Implementation — AI Integration
+
+1. **Contextual Inputs** — Users input their subject, exam date, available daily hours, and an optional description
+2. **Backend Processing** — Express wraps the data into a strict prompt and sends it to the Gemini 2.5 Flash endpoint
+3. **Structured Output** — Gemini returns a personalised, spaced-repetition schedule in parsable JSON
+4. **Frontend Rendering** — React displays the plan, saves it to Firestore, and allows 1-click PDF exporting via html2pdf.js
+
+---
+
+## 🧱 Challenges Faced
+
+| Challenge | Solution |
+|---|---|
+| **Enforcing AI Output Formats** | Getting Gemini to consistently return strict, parsable JSON for MCQ quizzes required heavy prompt engineering and backend validation to prevent frontend crashes |
+| **State Management & Data Sync** | Ensuring Pomodoro timer data reliably synced to Firestore even during brief network drops — solved via robust local state caching before writing to the database |
+| **Dynamic CSS Rendering** | Scaling 8 unique dungeon-themed avatar borders perfectly across Dashboard, Profile, and Leaderboard without causing layout shifts |
+
+---
+
+## 🚀 Future Roadmap
+
+| Phase | Timeline | Goal |
+|---|---|---|
+| **Phase 1** | Next 3 months | Launch a closed beta with students across Universiti Malaya to track how the gamified ranking system impacts study retention |
+| **Phase 2** | Next 6 months | Integrate Gemini Vision so users can snap a photo of handwritten lecture notes and instantly generate quizzes from the image |
+| **Phase 3** | Next 12 months | Introduce **"Crew Battles"** — study groups compete on cross-university leaderboards for weekly study hours to unlock time-limited titles |
+
+---
+
 ## 🤝 Contributing
+
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
 
