@@ -120,9 +120,10 @@ const Leaderboard = ({ user }) => {
     const formatTime = (totalHours) => {
         const hours = Math.floor(totalHours || 0);
         const minutes = Math.round(((totalHours || 0) % 1) * 60);
-        if (hours === 0 && minutes === 0) return '0m';
-        if (hours === 0) return `${minutes}m`;
-        return `${hours}h ${minutes}m`;
+        if (hours === 0 && minutes === 0) return '0 mins';
+        if (hours === 0) return `${minutes} mins`;
+        if (minutes === 0) return `${hours} hrs`;
+        return `${hours} hrs ${minutes} mins`;
     };
 
     return (
