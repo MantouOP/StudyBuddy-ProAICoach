@@ -117,6 +117,14 @@ const Leaderboard = ({ user }) => {
         return <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-muted)', width: '24px', textAlign: 'center' }}>{index + 1}</span>;
     };
 
+    const formatTime = (totalHours) => {
+        const hours = Math.floor(totalHours || 0);
+        const minutes = Math.round(((totalHours || 0) % 1) * 60);
+        if (hours === 0 && minutes === 0) return '0m';
+        if (hours === 0) return `${minutes}m`;
+        return `${hours}h ${minutes}m`;
+    };
+
     return (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
@@ -159,7 +167,7 @@ const Leaderboard = ({ user }) => {
                                     </div>
                                     <div>
                                         <div style={{ fontWeight: '500' }}>{resultuser.username}</div>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{resultuser.totalStudyHours || 0} hrs studied</div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatTime(resultuser.totalStudyHours)} studied</div>
                                     </div>
                                 </div>
                                 {friendsList.includes(resultuser.id) ? (
@@ -235,9 +243,9 @@ const Leaderboard = ({ user }) => {
 
                                     <div style={{ textAlign: 'right' }}>
                                         <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'white' }}>
-                                            {(topUser.totalStudyHours || 0).toFixed(1)}
+                                            {formatTime(topUser.totalStudyHours)}
                                         </div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Hours</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Time</div>
                                     </div>
 
                                 </div>
