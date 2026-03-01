@@ -220,7 +220,41 @@ const Pomodoro = ({ user }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isActive, timeLeft]);
 
+    const playAlarm = () => {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const audioCtx = new AudioContext();
+
+            // Create a pleasant double-chime (D6 -> A5)
+            const playNote = (freq, timeOffset, duration) => {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + timeOffset);
+
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime + timeOffset);
+                gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + timeOffset + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + timeOffset + duration);
+
+                osc.start(audioCtx.currentTime + timeOffset);
+                osc.stop(audioCtx.currentTime + timeOffset + duration);
+            };
+
+            playNote(1174.66, 0, 1.0); // D6
+            playNote(880.00, 0.3, 1.5); // A5
+
+        } catch (e) {
+            console.error("Audio playback failed", e);
+        }
+    };
+
     const handleComplete = async () => {
+        playAlarm();
         clearInterval(timerRef.current);
         setIsActive(false);
         targetEndTimeRef.current = null;
