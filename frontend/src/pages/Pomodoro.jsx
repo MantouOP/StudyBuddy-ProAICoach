@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Coffee, Brain, History, Trash2, Download, Settings, X, Save } from 'lucide-react';
+import { Play, Pause, RotateCcw, Coffee, Brain, History, Trash2, Download, Settings, X, Save, BellOff } from 'lucide-react';
 import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc, getDocs, query, orderBy, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import html2pdf from 'html2pdf.js';
@@ -24,6 +24,8 @@ const Pomodoro = ({ user }) => {
     const [focusHistory, setFocusHistory] = useState([]);
     const timerRef = useRef(null);
     const targetEndTimeRef = useRef(null);
+    const ringingIntervalRef = useRef(null);
+    const [isAlarmRinging, setIsAlarmRinging] = useState(false);
 
     // Initialize from Local Storage
     useEffect(() => {
@@ -216,7 +218,10 @@ const Pomodoro = ({ user }) => {
         } else if (isActive && timeLeft === 0) {
             handleComplete();
         }
-        return () => clearInterval(timerRef.current);
+        return () => {
+            clearInterval(timerRef.current);
+            if (ringingIntervalRef.current) clearInterval(ringingIntervalRef.current);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isActive, timeLeft]);
 
@@ -228,29 +233,43 @@ const Pomodoro = ({ user }) => {
                 window.audioCtx.resume();
             }
 
-            const playNote = (freq, timeOffset, duration) => {
-                const osc = window.audioCtx.createOscillator();
-                const gainNode = window.audioCtx.createGain();
+            const playSingleChime = () => {
+                const playNote = (freq, timeOffset, duration) => {
+                    const osc = window.audioCtx.createOscillator();
+                    const gainNode = window.audioCtx.createGain();
 
-                osc.connect(gainNode);
-                gainNode.connect(window.audioCtx.destination);
+                    osc.connect(gainNode);
+                    gainNode.connect(window.audioCtx.destination);
 
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, window.audioCtx.currentTime + timeOffset);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, window.audioCtx.currentTime + timeOffset);
 
-                gainNode.gain.setValueAtTime(0, window.audioCtx.currentTime + timeOffset);
-                gainNode.gain.linearRampToValueAtTime(0.5, window.audioCtx.currentTime + timeOffset + 0.05);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, window.audioCtx.currentTime + timeOffset + duration);
+                    gainNode.gain.setValueAtTime(0, window.audioCtx.currentTime + timeOffset);
+                    gainNode.gain.linearRampToValueAtTime(0.5, window.audioCtx.currentTime + timeOffset + 0.05);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, window.audioCtx.currentTime + timeOffset + duration);
 
-                osc.start(window.audioCtx.currentTime + timeOffset);
-                osc.stop(window.audioCtx.currentTime + timeOffset + duration);
+                    osc.start(window.audioCtx.currentTime + timeOffset);
+                    osc.stop(window.audioCtx.currentTime + timeOffset + duration);
+                };
+
+                playNote(1174.66, 0, 1.0); // D6
+                playNote(880.00, 0.3, 1.5); // A5
             };
 
-            playNote(1174.66, 0, 1.0); // D6
-            playNote(880.00, 0.3, 1.5); // A5
+            playSingleChime();
+            if (ringingIntervalRef.current) clearInterval(ringingIntervalRef.current);
+            ringingIntervalRef.current = setInterval(playSingleChime, 3000);
 
         } catch (e) {
             console.error("Audio playback failed", e);
+        }
+    };
+
+    const stopAlarm = () => {
+        setIsAlarmRinging(false);
+        if (ringingIntervalRef.current) {
+            clearInterval(ringingIntervalRef.current);
+            ringingIntervalRef.current = null;
         }
     };
 
@@ -258,12 +277,12 @@ const Pomodoro = ({ user }) => {
         if ("Notification" in window && Notification.permission === "granted") {
             new Notification(title, {
                 body: body,
-                icon: '/favicon.ico'
             });
         }
     };
 
     const handleComplete = async () => {
+        setIsAlarmRinging(true);
         playAlarm();
         clearInterval(timerRef.current);
         setIsActive(false);
@@ -511,12 +530,20 @@ const Pomodoro = ({ user }) => {
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                                <button onClick={toggleTimer} className="btn-primary" style={{ width: '140px' }}>
-                                    {isActive ? <><Pause size={20} /> Pause</> : <><Play size={20} /> Start</>}
-                                </button>
-                                <button onClick={resetTimer} className="btn-secondary">
-                                    <RotateCcw size={20} />
-                                </button>
+                                {isAlarmRinging ? (
+                                    <button onClick={stopAlarm} className="btn-primary" style={{ width: '100%', background: 'var(--danger)', display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                                        <BellOff size={20} /> Stop Alarm
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button onClick={toggleTimer} className="btn-primary" style={{ width: '140px' }}>
+                                            {isActive ? <><Pause size={20} /> Pause</> : <><Play size={20} /> Start</>}
+                                        </button>
+                                        <button onClick={resetTimer} className="btn-secondary">
+                                            <RotateCcw size={20} />
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
                             <div style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--glass-border)', color: 'var(--text-muted)' }}>
