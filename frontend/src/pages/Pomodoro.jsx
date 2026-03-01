@@ -222,27 +222,28 @@ const Pomodoro = ({ user }) => {
 
     const playAlarm = () => {
         try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const audioCtx = new AudioContext();
+            if (!window.audioCtx) return;
 
-            // Create a pleasant double-chime (D6 -> A5)
+            if (window.audioCtx.state === 'suspended') {
+                window.audioCtx.resume();
+            }
+
             const playNote = (freq, timeOffset, duration) => {
-                const osc = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
+                const osc = window.audioCtx.createOscillator();
+                const gainNode = window.audioCtx.createGain();
 
                 osc.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
+                gainNode.connect(window.audioCtx.destination);
 
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + timeOffset);
+                osc.frequency.setValueAtTime(freq, window.audioCtx.currentTime + timeOffset);
 
-                gainNode.gain.setValueAtTime(0, audioCtx.currentTime + timeOffset);
-                gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + timeOffset + 0.05);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + timeOffset + duration);
+                gainNode.gain.setValueAtTime(0, window.audioCtx.currentTime + timeOffset);
+                gainNode.gain.linearRampToValueAtTime(0.5, window.audioCtx.currentTime + timeOffset + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, window.audioCtx.currentTime + timeOffset + duration);
 
-                osc.start(audioCtx.currentTime + timeOffset);
-                osc.stop(audioCtx.currentTime + timeOffset + duration);
+                osc.start(window.audioCtx.currentTime + timeOffset);
+                osc.stop(window.audioCtx.currentTime + timeOffset + duration);
             };
 
             playNote(1174.66, 0, 1.0); // D6
@@ -253,11 +254,27 @@ const Pomodoro = ({ user }) => {
         }
     };
 
+    const showNotification = (title, body) => {
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(title, {
+                body: body,
+                icon: '/favicon.ico'
+            });
+        }
+    };
+
     const handleComplete = async () => {
         playAlarm();
         clearInterval(timerRef.current);
         setIsActive(false);
         targetEndTimeRef.current = null;
+
+        const completedMode = timerMode;
+        if (completedMode === 'focus') {
+            showNotification("Focus Session Complete! 🎯", `Great job! You focused for ${focusMinutes} minutes.`);
+        } else {
+            showNotification("Break Complete! ☕", "Time to get back to studying!");
+        }
 
         let newMode = timerMode;
         let newTimeLeft = 0;
@@ -342,6 +359,18 @@ const Pomodoro = ({ user }) => {
 
     const toggleTimer = () => {
         if (!isActive) {
+            // Initialize audio context and request notification permission on user gesture
+            if (!window.audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) window.audioCtx = new AudioContext();
+            }
+            if (window.audioCtx && window.audioCtx.state === 'suspended') {
+                window.audioCtx.resume();
+            }
+            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+
             targetEndTimeRef.current = Date.now() + timeLeft * 1000;
             setIsActive(true);
             saveState(true, timeLeft, timerMode, sessionCount, targetEndTimeRef.current);
