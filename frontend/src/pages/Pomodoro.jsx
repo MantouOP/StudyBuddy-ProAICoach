@@ -583,7 +583,7 @@ const Pomodoro = ({ user }) => {
 
                             {/* Animated Timer Display */}
                             <div 
-                                style={{ position: 'relative', width: '250px', height: '250px', margin: '0 auto 2.5rem', cursor: isActive ? 'default' : 'pointer' }}
+                                style={{ position: 'relative', width: '300px', height: '300px', margin: '0 auto 2.5rem', cursor: isActive ? 'default' : 'pointer', touchAction: 'none' }}
                                 onMouseDown={(e) => {
                                     if (isActive) return;
                                     setIsDragging(true);
@@ -627,9 +627,10 @@ const Pomodoro = ({ user }) => {
                                 </svg>
                                 <div style={{
                                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                    pointerEvents: 'none'
                                 }}>
-                                    <h1 className="text-gradient" style={{ fontSize: '4rem', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                                    <h1 className="text-gradient" style={{ fontSize: '3rem', fontFamily: 'monospace', fontWeight: 'bold' }}>
                                         {formatTime(timeLeft)}
                                     </h1>
                                     <p style={{ color: 'var(--text-muted)' }}>
