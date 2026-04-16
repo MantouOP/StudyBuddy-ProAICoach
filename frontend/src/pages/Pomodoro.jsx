@@ -630,7 +630,7 @@ const Pomodoro = ({ user }) => {
                                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                                     pointerEvents: 'none'
                                 }}>
-                                    <h1 className="text-gradient" style={{ fontSize: '3rem', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                                    <h1 className="text-gradient" style={{ fontSize: '3.5rem', fontFamily: 'monospace', fontWeight: 'bold' }}>
                                         {formatTime(timeLeft)}
                                     </h1>
                                     <p style={{ color: 'var(--text-muted)' }}>
