@@ -27,6 +27,11 @@ const Pomodoro = ({ user }) => {
     const ringingIntervalRef = useRef(null);
     const [isAlarmRinging, setIsAlarmRinging] = useState(false);
 
+    // Circular Drag Timer States
+    const svgRef = useRef(null);
+    const [isDragging, setIsDragging] = useState(false);
+
+
     // Initialize from Local Storage
     useEffect(() => {
         const configSaved = localStorage.getItem('pomodoroConfig');
@@ -77,6 +82,80 @@ const Pomodoro = ({ user }) => {
             targetEndTime: targetTime
         }));
     };
+
+    const updateTimeFromPointer = (clientX, clientY) => {
+        if (!svgRef.current || isActive) return;
+        const bounds = svgRef.current.getBoundingClientRect();
+        const centerX = bounds.left + bounds.width / 2;
+        const centerY = bounds.top + bounds.height / 2;
+        
+        const dx = clientX - centerX;
+        const dy = clientY - centerY;
+        
+        let deg = Math.atan2(dy, dx) * (180 / Math.PI);
+        deg = deg + 90;
+        if (deg < 0) deg += 360;
+        
+        const maxTime = 180; // 360 degrees = 180 minutes
+        let newMin = Math.round((deg / 360) * maxTime);
+        if (newMin < 1) newMin = 1;
+        if (newMin > maxTime) newMin = maxTime;
+
+        if (timerMode === 'focus') {
+            setFocusMinutes(newMin);
+            setTempFocus(newMin);
+        } else if (timerMode === 'shortBreak') {
+            setShortBreakMinutes(newMin);
+            setTempShort(newMin);
+        } else {
+            setLongBreakMinutes(newMin);
+            setTempLong(newMin);
+        }
+        
+        setTimeLeft(newMin * 60);
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            if (isDragging) updateTimeFromPointer(e.clientX, e.clientY);
+        };
+        const handleTouchMove = (e) => {
+            if (isDragging) {
+                if (e.cancelable) e.preventDefault();
+                updateTimeFromPointer(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        };
+        const handleMouseUp = () => {
+            if (isDragging) {
+                setIsDragging(false);
+                let finalMin = focusMinutes;
+                if (timerMode === 'shortBreak') finalMin = shortBreakMinutes;
+                if (timerMode === 'longBreak') finalMin = longBreakMinutes;
+                saveState(false, finalMin * 60, timerMode, sessionCount, null);
+                
+                const conf = JSON.parse(localStorage.getItem('pomodoroConfig') || '{}');
+                if (timerMode === 'focus') conf.focus = finalMin;
+                else if (timerMode === 'shortBreak') conf.short = finalMin;
+                else conf.long = finalMin;
+                localStorage.setItem('pomodoroConfig', JSON.stringify(conf));
+            }
+        };
+
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            window.addEventListener('touchmove', handleTouchMove, { passive: false });
+            window.addEventListener('touchend', handleMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('touchend', handleMouseUp);
+        };
+    }, [isDragging, timerMode, focusMinutes, shortBreakMinutes, longBreakMinutes, sessionCount, isActive]);
+
 
     const applySettings = () => {
         const f = Math.min(180, Math.max(1, tempFocus));
@@ -430,11 +509,11 @@ const Pomodoro = ({ user }) => {
     };
 
     // Calculate progress for the circular timer
-    let totalSeconds = focusMinutes * 60;
-    if (timerMode === 'shortBreak') totalSeconds = shortBreakMinutes * 60;
-    else if (timerMode === 'longBreak') totalSeconds = longBreakMinutes * 60;
+    const MAX_MINUTES = 180;
+    const displayPercent = (timeLeft / (MAX_MINUTES * 60)) * 100;
+    const circleCircumference = 282.74; // 2 * pi * 45
+    const strokeDashoffset = circleCircumference - (circleCircumference * displayPercent) / 100;
 
-    const progressPercent = ((totalSeconds - timeLeft) / totalSeconds) * 100;
 
     return (
         <div className="fade-in" style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start', paddingBottom: '2rem' }}>
@@ -503,18 +582,48 @@ const Pomodoro = ({ user }) => {
                             </div>
 
                             {/* Animated Timer Display */}
-                            <div style={{ position: 'relative', width: '250px', height: '250px', margin: '0 auto 2.5rem' }}>
-                                <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 100 100">
+                            <div 
+                                style={{ position: 'relative', width: '250px', height: '250px', margin: '0 auto 2.5rem', cursor: isActive ? 'default' : 'pointer' }}
+                                onMouseDown={(e) => {
+                                    if (isActive) return;
+                                    setIsDragging(true);
+                                    updateTimeFromPointer(e.clientX, e.clientY);
+                                }}
+                                onTouchStart={(e) => {
+                                    if (isActive) return;
+                                    setIsDragging(true);
+                                    updateTimeFromPointer(e.touches[0].clientX, e.touches[0].clientY);
+                                }}
+                                ref={svgRef}
+                                title={!isActive ? "Drag to adjust the timer duration" : ""}
+                            >
+                                <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)', overflow: 'visible' }} viewBox="0 0 100 100">
                                     {/* Background track */}
                                     <circle cx="50" cy="50" r="45" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
                                     {/* Progress circle */}
                                     <circle cx="50" cy="50" r="45" fill="transparent"
                                         stroke={timerMode === 'focus' ? 'var(--primary-accent)' : 'var(--secondary-accent)'}
-                                        strokeWidth="4"
-                                        strokeDasharray="283"
-                                        strokeDashoffset={283 - (283 * progressPercent) / 100}
-                                        style={{ transition: 'stroke-dashoffset 1s linear', strokeLinecap: 'round' }}
+                                        strokeWidth="6"
+                                        strokeDasharray={circleCircumference}
+                                        strokeDashoffset={strokeDashoffset}
+                                        style={{ transition: isDragging ? 'none' : 'stroke-dashoffset 1s linear', strokeLinecap: 'round' }}
                                     />
+                                    {/* Drag Handle */}
+                                    {!isActive && (
+                                        <circle
+                                            cx={50 + 45 * Math.cos((displayPercent / 100) * 2 * Math.PI)}
+                                            cy={50 + 45 * Math.sin((displayPercent / 100) * 2 * Math.PI)}
+                                            r={isDragging ? "7" : "5"}
+                                            fill="#fff"
+                                            stroke={timerMode === 'focus' ? 'var(--primary-accent)' : 'var(--secondary-accent)'}
+                                            strokeWidth="2"
+                                            style={{ 
+                                                transition: isDragging ? 'none' : 'all 0.3s ease',
+                                                filter: isDragging ? 'drop-shadow(0 0 8px rgba(255,255,255,0.8))' : 'drop-shadow(0 0 4px rgba(0,0,0,0.5))',
+                                                cursor: 'grab'
+                                            }}
+                                        />
+                                    )}
                                 </svg>
                                 <div style={{
                                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
