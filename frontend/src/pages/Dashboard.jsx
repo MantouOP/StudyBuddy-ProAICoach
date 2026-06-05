@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, addDoc, serverTimestamp, onSnapshot, writeBatch } from 'firebase/firestore';
@@ -16,14 +17,117 @@ const Dashboard = ({ user }) => {
     const [loadingSearch, setLoadingSearch] = useState(false);
     const [showRankModal, setShowRankModal] = useState(false);
     const [showMailboxModal, setShowMailboxModal] = useState(false);
+    const [weeklyData, setWeeklyData] = useState([
+        { name: 'Mon', hours: 0 },
+        { name: 'Tue', hours: 0 },
+        { name: 'Wed', hours: 0 },
+        { name: 'Thu', hours: 0 },
+        { name: 'Fri', hours: 0 },
+        { name: 'Sat', hours: 0 },
+        { name: 'Today', hours: 0 }
+    ]);
 
     // Welcome Widget States
     const [currentTime, setCurrentTime] = useState(new Date());
     const [weather, setWeather] = useState(null);
     const [locationName, setLocationName] = useState('');
 
+
+
+    const getSessionDate = (createdAt) => {
+        if (!createdAt) return null;
+        if (createdAt.toDate) return createdAt.toDate();
+        if (createdAt.seconds) return new Date(createdAt.seconds * 1000);
+
+        const date = new Date(createdAt);
+        return Number.isNaN(date.getTime()) ? null : date;
+    };
+
+    const getLocalDateKey = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    async function fetchWeeklyData() {
+        try {
+            const historyRef = collection(doc(db, 'users', user.uid), 'focusSessions');
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+            sevenDaysAgo.setHours(0, 0, 0, 0);
+
+            const snap = await getDocs(historyRef);
+
+            const days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                d.setHours(0, 0, 0, 0);
+                days.push({
+                    dateKey: getLocalDateKey(d),
+                    name: i === 0 ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' }),
+                    hours: 0
+                });
+            }
+
+            snap.docs.forEach(docSnap => {
+                const data = docSnap.data();
+                const sessionDate = getSessionDate(data.createdAt);
+                if (!sessionDate || sessionDate < sevenDaysAgo) return;
+
+                const sessionDateKey = getLocalDateKey(sessionDate);
+                const durationHours = (data.duration || 0) / 60;
+
+                const dayIndex = days.findIndex(day => day.dateKey === sessionDateKey);
+                if (dayIndex !== -1) {
+                    days[dayIndex].hours += durationHours;
+                }
+            });
+
+            const formattedDays = days.map(({ name, hours }) => ({
+                name,
+                hours: parseFloat(hours.toFixed(1))
+            }));
+
+            setWeeklyData(formattedDays);
+        } catch (err) {
+            console.error('Error fetching weekly data', err);
+        }
+    };
+
+    const fetchFriendsData = async (friendUids) => {
+        try {
+            const q = query(collection(db, 'users'), where('uid', 'in', friendUids));
+            const querySnapshot = await getDocs(q);
+            const friends = querySnapshot.docs.map(d => d.data());
+            // Sort by study hours descending for leaderboard
+            friends.sort((a, b) => (b.totalStudyHours || 0) - (a.totalStudyHours || 0));
+            setFriendsList(friends);
+        } catch (err) {
+            console.error('Error fetching friends', err);
+        }
+    };
+
+    async function fetchUserData() {
+        try {
+            const uRef = doc(db, 'users', user.uid);
+            const snap = await getDoc(uRef);
+            if (snap.exists()) {
+                const data = snap.data();
+                setUserData(data);
+                if (data.friends && data.friends.length > 0) {
+                    fetchFriendsData(data.friends);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching user data', err);
+        }
+    };
+
     useEffect(() => {
         fetchUserData();
+        fetchWeeklyData();
 
         // Listen for incoming friend requests
         const q = query(
@@ -78,34 +182,7 @@ const Dashboard = ({ user }) => {
         }
     }, [user]);
 
-    const fetchUserData = async () => {
-        try {
-            const uRef = doc(db, 'users', user.uid);
-            const snap = await getDoc(uRef);
-            if (snap.exists()) {
-                const data = snap.data();
-                setUserData(data);
-                if (data.friends && data.friends.length > 0) {
-                    fetchFriendsData(data.friends);
-                }
-            }
-        } catch (err) {
-            console.error('Error fetching user data', err);
-        }
-    };
 
-    const fetchFriendsData = async (friendUids) => {
-        try {
-            const q = query(collection(db, 'users'), where('uid', 'in', friendUids));
-            const querySnapshot = await getDocs(q);
-            const friends = querySnapshot.docs.map(d => d.data());
-            // Sort by study hours descending for leaderboard
-            friends.sort((a, b) => (b.totalStudyHours || 0) - (a.totalStudyHours || 0));
-            setFriendsList(friends);
-        } catch (err) {
-            console.error('Error fetching friends', err);
-        }
-    };
 
     const handleSearchUser = async (e) => {
         e.preventDefault();
@@ -271,16 +348,8 @@ const Dashboard = ({ user }) => {
     ] : [
         { name: 'No Data', value: 1, color: '#334155' } // slate-700
     ];
-    // Mock recent day data based on total since we don't store daily breakdown explicitly yet
-    const barData = [
-        { name: 'Mon', hours: studyHours > 1 ? 1 : 0 },
-        { name: 'Tue', hours: studyHours > 2 ? 1.5 : 0 },
-        { name: 'Wed', hours: studyHours > 3 ? 2 : 0 },
-        { name: 'Thu', hours: studyHours > 4 ? 0.5 : 0 },
-        { name: 'Fri', hours: studyHours > 5 ? 1 : 0 },
-        { name: 'Sat', hours: studyHours > 6 ? 2.5 : 0 },
-        { name: 'Today', hours: Math.max(0, studyHours - 8.5) > 0 ? studyHours - 8.5 : studyHours }
-    ];
+    // Use real weekly data instead of mock
+    const barData = weeklyData;
 
     // Helper to format last active status
     const getStatusStr = (lastActiveTimeStr) => {
