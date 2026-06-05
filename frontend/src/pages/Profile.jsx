@@ -9,14 +9,14 @@ const AVATAR_API = "https://api.dicebear.com/9.x/bottts/svg?seed=";
 const AVATARS = Array.from({ length: 50 }, (_, i) => `${AVATAR_API}CuteBot${i}`);
 
 const ALL_BORDERS = [
-    { title: 'Iron Novice', color: '#57534e' },
-    { title: 'Silver Scholar', color: '#cbd5e1' },
-    { title: 'Gold Academic', color: '#fbbf24' },
-    { title: 'Platinum Prodigy', color: '#2dd4bf' },
-    { title: 'Diamond Researcher', color: '#38bdf8' },
-    { title: 'Immortal Genius', color: '#e11d48' },
-    { title: 'Radiant Polymath', color: '#fef08a' },
-    { title: 'Transcendent Luminary', color: '#c084fc' }
+    { title: 'Iron Novice', color: '#57534e', unlockAt: 0 },
+    { title: 'Silver Scholar', color: '#cbd5e1', unlockAt: 5 },
+    { title: 'Gold Academic', color: '#fbbf24', unlockAt: 15 },
+    { title: 'Platinum Prodigy', color: '#2dd4bf', unlockAt: 30 },
+    { title: 'Diamond Researcher', color: '#38bdf8', unlockAt: 50 },
+    { title: 'Immortal Genius', color: '#e11d48', unlockAt: 100 },
+    { title: 'Radiant Polymath', color: '#fef08a', unlockAt: 150 },
+    { title: 'Transcendent Luminary', color: '#c084fc', unlockAt: 250 }
 ];
 
 const ALL_TITLES = [
@@ -507,15 +507,15 @@ const Profile = ({ user }) => {
                         </div>
 
                         {ALL_BORDERS.map((border, idx) => {
-                            const isBaseBorder = border.color === '#57534e'; // Iron Novice
-                            const isUnlocked = isBaseBorder || (userData?.unlockedBorders?.includes(border.color));
+                            const isUnlockedByHours = studyHours >= border.unlockAt;
+                            const isUnlocked = isUnlockedByHours || (userData?.unlockedBorders?.includes(border.color));
                             const isEquipped = userData?.equippedBorder === border.color;
 
                             return (
                                 <div
                                     key={idx}
                                     onClick={() => isUnlocked && handleEquipBorder(border.color)}
-                                    title={`${border.title} ${isUnlocked ? '' : '(Locked)'}`}
+                                    title={`${border.title} ${isUnlocked ? '' : `(Locked - ${border.unlockAt} hrs)`}`}
                                     className={getBorderClass(border.color)}
                                     style={{
                                         width: '50px', height: '50px', borderRadius: '50%',
