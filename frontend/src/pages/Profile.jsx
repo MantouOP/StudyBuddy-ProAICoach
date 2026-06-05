@@ -249,13 +249,13 @@ const Profile = ({ user }) => {
 
     // Gamification Logic
     const getRankInfo = (hours) => {
-        if (hours < 50) return { title: 'Iron Novice', icon: <Medal color="#57534e" size={32} />, nextAt: 50, color: '#57534e' };
-        if (hours < 150) return { title: 'Silver Scholar', icon: <Medal color="#cbd5e1" size={32} />, nextAt: 150, color: '#cbd5e1' };
-        if (hours < 225) return { title: 'Gold Academic', icon: <Trophy color="#fbbf24" size={32} />, nextAt: 225, color: '#fbbf24' };
-        if (hours < 300) return { title: 'Platinum Prodigy', icon: <Star color="#2dd4bf" size={32} />, nextAt: 300, color: '#2dd4bf' };
-        if (hours < 500) return { title: 'Diamond Researcher', icon: <Star color="#38bdf8" size={32} />, nextAt: 500, color: '#38bdf8' };
-        if (hours < 1000) return { title: 'Immortal Genius', icon: <Crown color="#e11d48" size={32} />, nextAt: 1000, color: '#e11d48' };
-        if (hours < 2000) return { title: 'Radiant Polymath', icon: <Crown color="#fef08a" size={32} />, nextAt: 2000, color: '#fef08a' };
+        if (hours < 5) return { title: 'Iron Novice', icon: <Medal color="#57534e" size={32} />, nextAt: 5, color: '#57534e' };
+        if (hours < 15) return { title: 'Silver Scholar', icon: <Medal color="#cbd5e1" size={32} />, nextAt: 15, color: '#cbd5e1' };
+        if (hours < 30) return { title: 'Gold Academic', icon: <Trophy color="#fbbf24" size={32} />, nextAt: 30, color: '#fbbf24' };
+        if (hours < 50) return { title: 'Platinum Prodigy', icon: <Star color="#2dd4bf" size={32} />, nextAt: 50, color: '#2dd4bf' };
+        if (hours < 100) return { title: 'Diamond Researcher', icon: <Star color="#38bdf8" size={32} />, nextAt: 100, color: '#38bdf8' };
+        if (hours < 150) return { title: 'Immortal Genius', icon: <Crown color="#e11d48" size={32} />, nextAt: 150, color: '#e11d48' };
+        if (hours < 250) return { title: 'Radiant Polymath', icon: <Crown color="#fef08a" size={32} />, nextAt: 250, color: '#fef08a' };
         return { title: 'Transcendent Luminary', icon: <Crown color="#c084fc" size={32} />, nextAt: null, color: '#c084fc' };
     };
 

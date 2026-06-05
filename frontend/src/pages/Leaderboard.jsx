@@ -100,13 +100,13 @@ const Leaderboard = ({ user }) => {
     };
 
     const getRankInfo = (hours) => {
-        if (hours < 50) return { title: 'Iron Novice', color: '#57534e' };
-        if (hours < 150) return { title: 'Silver Scholar', color: '#cbd5e1' };
-        if (hours < 225) return { title: 'Gold Academic', color: '#fbbf24' };
-        if (hours < 300) return { title: 'Platinum Prodigy', color: '#2dd4bf' };
-        if (hours < 500) return { title: 'Diamond Researcher', color: '#38bdf8' };
-        if (hours < 1000) return { title: 'Immortal Genius', color: '#e11d48' };
-        if (hours < 2000) return { title: 'Radiant Polymath', color: '#fef08a' };
+        if (hours < 5) return { title: 'Iron Novice', color: '#57534e' };
+        if (hours < 15) return { title: 'Silver Scholar', color: '#cbd5e1' };
+        if (hours < 30) return { title: 'Gold Academic', color: '#fbbf24' };
+        if (hours < 50) return { title: 'Platinum Prodigy', color: '#2dd4bf' };
+        if (hours < 100) return { title: 'Diamond Researcher', color: '#38bdf8' };
+        if (hours < 150) return { title: 'Immortal Genius', color: '#e11d48' };
+        if (hours < 250) return { title: 'Radiant Polymath', color: '#fef08a' };
         return { title: 'Transcendent Luminary', color: '#c084fc' };
     };
 

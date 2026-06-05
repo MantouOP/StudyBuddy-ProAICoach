@@ -372,13 +372,13 @@ const Dashboard = ({ user }) => {
 
     // Gamification Logic
     const getRankInfo = (hours) => {
-        if (hours < 50) return { title: 'Iron Novice', icon: <Medal color="#57534e" size={28} />, color: '#57534e', nextAt: 50 };
-        if (hours < 150) return { title: 'Silver Scholar', icon: <Medal color="#cbd5e1" size={28} />, color: '#cbd5e1', nextAt: 150 };
-        if (hours < 225) return { title: 'Gold Academic', icon: <Trophy color="#fbbf24" size={28} />, color: '#fbbf24', nextAt: 225 };
-        if (hours < 300) return { title: 'Platinum Prodigy', icon: <Star color="#2dd4bf" size={28} />, color: '#2dd4bf', nextAt: 300 };
-        if (hours < 500) return { title: 'Diamond Researcher', icon: <Star color="#38bdf8" size={28} />, color: '#38bdf8', nextAt: 500 };
-        if (hours < 1000) return { title: 'Immortal Genius', icon: <Crown color="#e11d48" size={28} />, color: '#e11d48', nextAt: 1000 };
-        if (hours < 2000) return { title: 'Radiant Polymath', icon: <Crown color="#fef08a" size={28} />, color: '#fef08a', nextAt: 2000 };
+        if (hours < 5) return { title: 'Iron Novice', icon: <Medal color="#57534e" size={28} />, color: '#57534e', nextAt: 5 };
+        if (hours < 15) return { title: 'Silver Scholar', icon: <Medal color="#cbd5e1" size={28} />, color: '#cbd5e1', nextAt: 15 };
+        if (hours < 30) return { title: 'Gold Academic', icon: <Trophy color="#fbbf24" size={28} />, color: '#fbbf24', nextAt: 30 };
+        if (hours < 50) return { title: 'Platinum Prodigy', icon: <Star color="#2dd4bf" size={28} />, color: '#2dd4bf', nextAt: 50 };
+        if (hours < 100) return { title: 'Diamond Researcher', icon: <Star color="#38bdf8" size={28} />, color: '#38bdf8', nextAt: 100 };
+        if (hours < 150) return { title: 'Immortal Genius', icon: <Crown color="#e11d48" size={28} />, color: '#e11d48', nextAt: 150 };
+        if (hours < 250) return { title: 'Radiant Polymath', icon: <Crown color="#fef08a" size={28} />, color: '#fef08a', nextAt: 250 };
         return { title: 'Transcendent Luminary', icon: <Crown color="#c084fc" size={28} />, color: '#c084fc', nextAt: null };
     };
 
@@ -837,14 +837,14 @@ const Dashboard = ({ user }) => {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '40vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
                             {[
-                                { title: 'Transcendent Luminary', icon: <Crown color="#c084fc" size={24} />, color: '#c084fc', req: '2000+ hrs' },
-                                { title: 'Radiant Polymath', icon: <Crown color="#fef08a" size={24} />, color: '#fef08a', req: '1000 - 1999 hrs' },
-                                { title: 'Immortal Genius', icon: <Crown color="#e11d48" size={24} />, color: '#e11d48', req: '500 - 999 hrs' },
-                                { title: 'Diamond Researcher', icon: <Star color="#38bdf8" size={24} />, color: '#38bdf8', req: '300 - 499 hrs' },
-                                { title: 'Platinum Prodigy', icon: <Star color="#2dd4bf" size={24} />, color: '#2dd4bf', req: '225 - 299 hrs' },
-                                { title: 'Gold Academic', icon: <Trophy color="#fbbf24" size={24} />, color: '#fbbf24', req: '150 - 224 hrs' },
-                                { title: 'Silver Scholar', icon: <Medal color="#cbd5e1" size={24} />, color: '#cbd5e1', req: '50 - 149 hrs' },
-                                { title: 'Iron Novice', icon: <Medal color="#57534e" size={24} />, color: '#57534e', req: '0 - 49 hrs' }
+                                { title: 'Transcendent Luminary', icon: <Crown color="#c084fc" size={24} />, color: '#c084fc', req: '250+ hrs' },
+                                { title: 'Radiant Polymath', icon: <Crown color="#fef08a" size={24} />, color: '#fef08a', req: '150 - 249 hrs' },
+                                { title: 'Immortal Genius', icon: <Crown color="#e11d48" size={24} />, color: '#e11d48', req: '100 - 149 hrs' },
+                                { title: 'Diamond Researcher', icon: <Star color="#38bdf8" size={24} />, color: '#38bdf8', req: '50 - 99 hrs' },
+                                { title: 'Platinum Prodigy', icon: <Star color="#2dd4bf" size={24} />, color: '#2dd4bf', req: '30 - 49 hrs' },
+                                { title: 'Gold Academic', icon: <Trophy color="#fbbf24" size={24} />, color: '#fbbf24', req: '15 - 29 hrs' },
+                                { title: 'Silver Scholar', icon: <Medal color="#cbd5e1" size={24} />, color: '#cbd5e1', req: '5 - 14 hrs' },
+                                { title: 'Iron Novice', icon: <Medal color="#57534e" size={24} />, color: '#57534e', req: '0 - 4 hrs' }
                             ].map((tier, idx) => (
                                 <div key={idx} style={{
                                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
