@@ -7,6 +7,16 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveCont
 import { Users, Search, Activity, Trophy, UserPlus, Check, X, Clock, UserMinus, Medal, Star, Crown, Info, Inbox, Sun, Cloud, CloudRain, Sunrise } from 'lucide-react';
 import { getBorderClass } from '../utils/borders';
 
+const RANK_BORDER_REWARDS = [
+    { title: 'Silver Scholar', color: '#cbd5e1', unlockAt: 5 },
+    { title: 'Gold Academic', color: '#fbbf24', unlockAt: 15 },
+    { title: 'Platinum Prodigy', color: '#2dd4bf', unlockAt: 30 },
+    { title: 'Diamond Researcher', color: '#38bdf8', unlockAt: 50 },
+    { title: 'Immortal Genius', color: '#e11d48', unlockAt: 100 },
+    { title: 'Radiant Polymath', color: '#fef08a', unlockAt: 150 },
+    { title: 'Transcendent Luminary', color: '#c084fc', unlockAt: 250 }
+];
+
 const Dashboard = ({ user }) => {
     const navigate = useNavigate();
     const [userData, setUserData] = useState(null);
@@ -115,9 +125,35 @@ const Dashboard = ({ user }) => {
             const snap = await getDoc(uRef);
             if (snap.exists()) {
                 const data = snap.data();
-                setUserData(data);
-                if (data.friends && data.friends.length > 0) {
-                    fetchFriendsData(data.friends);
+                const mailbox = data.mailbox || [];
+                const unlockedBorders = data.unlockedBorders || [];
+                const existingRewardColors = new Set([
+                    ...mailbox.map(item => item.rewardHex),
+                    ...unlockedBorders
+                ]);
+                const totalHours = data.totalStudyHours || 0;
+                const missingRewards = RANK_BORDER_REWARDS
+                    .filter(rank => totalHours >= rank.unlockAt && !existingRewardColors.has(rank.color))
+                    .map(rank => ({
+                        id: `rank-${rank.unlockAt}-${rank.color.replace('#', '')}`,
+                        title: `Rank Up: ${rank.title}!`,
+                        desc: `Congratulations! You've reached ${rank.title}. Claim your exclusive border reward!`,
+                        rewardHex: rank.color,
+                        claimed: false,
+                        timestamp: new Date().toISOString()
+                    }));
+
+                const nextData = missingRewards.length > 0
+                    ? { ...data, mailbox: [...mailbox, ...missingRewards] }
+                    : data;
+
+                if (missingRewards.length > 0) {
+                    await updateDoc(uRef, { mailbox: nextData.mailbox });
+                }
+
+                setUserData(nextData);
+                if (nextData.friends && nextData.friends.length > 0) {
+                    fetchFriendsData(nextData.friends);
                 }
             }
         } catch (err) {

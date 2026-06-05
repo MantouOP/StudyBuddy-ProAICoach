@@ -6,6 +6,16 @@ import html2pdf from 'html2pdf.js';
 
 const POMODORO_STATE_KEY = 'pomodoroState';
 
+const RANK_BORDER_REWARDS = [
+    { title: 'Silver Scholar', color: '#cbd5e1', unlockAt: 5 },
+    { title: 'Gold Academic', color: '#fbbf24', unlockAt: 15 },
+    { title: 'Platinum Prodigy', color: '#2dd4bf', unlockAt: 30 },
+    { title: 'Diamond Researcher', color: '#38bdf8', unlockAt: 50 },
+    { title: 'Immortal Genius', color: '#e11d48', unlockAt: 100 },
+    { title: 'Radiant Polymath', color: '#fef08a', unlockAt: 150 },
+    { title: 'Transcendent Luminary', color: '#c084fc', unlockAt: 250 }
+];
+
 const Pomodoro = ({ user }) => {
     const [focusMinutes, setFocusMinutes] = useState(25);
     const [shortBreakMinutes, setShortBreakMinutes] = useState(5);
@@ -397,34 +407,29 @@ const Pomodoro = ({ user }) => {
                     const currentHours = userSnap.data().totalStudyHours || 0;
                     const newHours = currentHours + (focusMinutes / 60);
 
-                    const getRankColor = (hours) => {
-                        if (hours >= 250) return { title: 'Transcendent Luminary', color: '#c084fc' };
-                        if (hours >= 150) return { title: 'Radiant Polymath', color: '#fef08a' };
-                        if (hours >= 100) return { title: 'Immortal Genius', color: '#e11d48' };
-                        if (hours >= 50) return { title: 'Diamond Researcher', color: '#38bdf8' };
-                        if (hours >= 30) return { title: 'Platinum Prodigy', color: '#2dd4bf' };
-                        if (hours >= 15) return { title: 'Gold Academic', color: '#fbbf24' };
-                        if (hours >= 5) return { title: 'Silver Scholar', color: '#cbd5e1' };
-                        return { title: 'Iron Novice', color: '#57534e' };
-                    };
-
-                    const oldRank = getRankColor(currentHours);
-                    const newRank = getRankColor(newHours);
-
                     let updates = {
                         totalStudyHours: newHours
                     };
 
-                    if (oldRank.title !== newRank.title) {
-                        // Rank up! Deliver reward to mailbox
-                        updates.mailbox = arrayUnion({
-                            id: Date.now().toString(),
-                            title: `Rank Up: ${newRank.title}!`,
-                            desc: `Congratulations! You've reached ${newRank.title}. Claim your exclusive border reward!`,
-                            rewardHex: newRank.color,
+                    const mailbox = userSnap.data().mailbox || [];
+                    const unlockedBorders = userSnap.data().unlockedBorders || [];
+                    const existingRewardColors = new Set([
+                        ...mailbox.map(item => item.rewardHex),
+                        ...unlockedBorders
+                    ]);
+                    const crossedRewards = RANK_BORDER_REWARDS
+                        .filter(rank => currentHours < rank.unlockAt && newHours >= rank.unlockAt && !existingRewardColors.has(rank.color))
+                        .map(rank => ({
+                            id: `rank-${rank.unlockAt}-${rank.color.replace('#', '')}`,
+                            title: `Rank Up: ${rank.title}!`,
+                            desc: `Congratulations! You've reached ${rank.title}. Claim your exclusive border reward!`,
+                            rewardHex: rank.color,
                             claimed: false,
                             timestamp: new Date().toISOString()
-                        });
+                        }));
+
+                    if (crossedRewards.length > 0) {
+                        updates.mailbox = arrayUnion(...crossedRewards);
                     }
 
                     await updateDoc(userRef, updates);
