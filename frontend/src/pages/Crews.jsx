@@ -187,7 +187,7 @@ const Crews = ({ user }) => {
                     <p style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto' }}>You haven't joined any study crews. Create one to invite your friends, or join an existing one using an invite code!</p>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '1.5rem' }}>
                     {crews.map(crew => (
                         <div key={crew.id} className="glass-card" style={{
                             padding: '1.5rem',
