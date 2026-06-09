@@ -105,7 +105,7 @@ const Signup = () => {
                 email: userCredential.user.email,
                 totalStudyHours: 0,
                 friends: []
-            });
+            }, { merge: true });
 
             sendWelcomeEmail({
                 email: userCredential.user.email,
@@ -162,6 +162,13 @@ const Signup = () => {
             }
 
             const userDocRef = doc(db, 'users', pendingSocialUser.uid);
+            const existingUserDoc = await getDoc(userDocRef);
+            if (existingUserDoc.exists()) {
+                navigate('/');
+                setLoading(false);
+                return;
+            }
+
             await setDoc(userDocRef, {
                 uid: pendingSocialUser.uid,
                 username: socialUsername.trim(),
@@ -169,7 +176,7 @@ const Signup = () => {
                 photoURL: pendingSocialUser.photoURL || '',
                 totalStudyHours: 0,
                 friends: []
-            });
+            }, { merge: true });
             sendWelcomeEmail({
                 email: pendingSocialUser.email,
                 username: socialUsername.trim()

@@ -150,7 +150,7 @@ const Login = () => {
                     photoURL: user.photoURL || '',
                     totalStudyHours: 0,
                     friends: []
-                });
+                }, { merge: true });
 
                 sendWelcomeEmail({
                     email: user.email,

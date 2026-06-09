@@ -15,19 +15,7 @@ import CrewDetail from './pages/CrewDetail';
 import StudyAnalysis from './pages/StudyAnalysis';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-
-const PROTECTED_PROFILE_REPAIRS = {
-  'enuelhzt1524@gmail.com': {
-    minimumStudyHours: 80,
-    friends: [
-      '2SGv6xIyv8hnGNyYo9wKEdexRtJ2',
-      'u9IeRjD5CrXLyojEaYxGLJOOZdD2',
-      'uemNUDrlJYNV16E6jXHeP2Uj72J3',
-      'zvoWv3XET2bHPeDpTZw6cvTp2qr1'
-    ]
-  }
-};
+import { doc, updateDoc } from 'firebase/firestore';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -48,28 +36,6 @@ function App() {
     const updatePresence = async () => {
       try {
         const uRef = doc(db, 'users', user.uid);
-        const protectedRepair = PROTECTED_PROFILE_REPAIRS[user.email?.toLowerCase()];
-
-        if (protectedRepair) {
-          const snap = await getDoc(uRef);
-          const data = snap.exists() ? snap.data() : {};
-          const currentHours = data.totalStudyHours || 0;
-          const currentFriends = data.friends || [];
-          const shouldRepairHours = currentHours < protectedRepair.minimumStudyHours;
-          const shouldRepairFriends = protectedRepair.friends.some(friendId => !currentFriends.includes(friendId));
-
-          if (shouldRepairHours || shouldRepairFriends || !snap.exists()) {
-            await setDoc(uRef, {
-              uid: user.uid,
-              username: data.username || user.displayName || user.email?.split('@')[0] || 'StudyBuddy',
-              email: user.email || data.email || '',
-              photoURL: data.photoURL || user.photoURL || '',
-              totalStudyHours: shouldRepairHours ? protectedRepair.minimumStudyHours : currentHours,
-              friends: Array.from(new Set([...currentFriends, ...protectedRepair.friends]))
-            }, { merge: true });
-          }
-        }
-
         await updateDoc(uRef, {
           lastActive: new Date().toISOString()
         });
