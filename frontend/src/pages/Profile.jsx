@@ -8,26 +8,35 @@ import { getBorderClass } from '../utils/borders';
 const AVATAR_API = "https://api.dicebear.com/9.x/bottts/svg?seed=";
 const AVATARS = Array.from({ length: 50 }, (_, i) => `${AVATAR_API}CuteBot${i}`);
 
-const compressImageToDataUrl = (file, maxSize = 320, quality = 0.82) => new Promise((resolve, reject) => {
+const readImageFileAsDataUrl = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Could not read image file.'));
-    reader.onload = () => {
-        const image = new Image();
-        image.onerror = () => reject(new Error('Could not load image file.'));
-        image.onload = () => {
-            const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
-            const width = Math.max(1, Math.round(image.width * scale));
-            const height = Math.max(1, Math.round(image.height * scale));
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(image, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', quality));
-        };
-        image.src = reader.result;
-    };
+    reader.onload = () => resolve(reader.result);
     reader.readAsDataURL(file);
+});
+
+const createCroppedAvatarDataUrl = (src, crop, outputSize = 320, quality = 0.86) => new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onerror = () => reject(new Error('Could not load image file.'));
+    image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = outputSize;
+        canvas.height = outputSize;
+        const ctx = canvas.getContext('2d');
+        const baseScale = Math.max(outputSize / image.width, outputSize / image.height);
+        const scale = baseScale * crop.zoom;
+        const width = image.width * scale;
+        const height = image.height * scale;
+        const offsetScale = outputSize / crop.previewSize;
+        const x = (outputSize - width) / 2 + crop.x * offsetScale;
+        const y = (outputSize - height) / 2 + crop.y * offsetScale;
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, outputSize, outputSize);
+        ctx.drawImage(image, x, y, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    image.src = src;
 });
 
 const ALL_BORDERS = [
@@ -167,6 +176,10 @@ const Profile = ({ user }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
     const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+    const [cropImageSrc, setCropImageSrc] = useState('');
+    const [cropZoom, setCropZoom] = useState(1);
+    const [cropX, setCropX] = useState(0);
+    const [cropY, setCropY] = useState(0);
     const [showTitlesModal, setShowTitlesModal] = useState(false);
     const [titleSearch, setTitleSearch] = useState('');
     const [titleCategory, setTitleCategory] = useState('All');
@@ -249,20 +262,48 @@ const Profile = ({ user }) => {
             return;
         }
 
+        try {
+            const imageDataUrl = await readImageFileAsDataUrl(file);
+            setCropImageSrc(imageDataUrl);
+            setCropZoom(1);
+            setCropX(0);
+            setCropY(0);
+        } catch (error) {
+            console.error('Error loading avatar:', error);
+            alert(`Failed to load profile picture: ${error.message}`);
+        } finally {
+            e.target.value = '';
+        }
+    };
+
+    const handleCropCancel = () => {
+        setCropImageSrc('');
+        setCropZoom(1);
+        setCropX(0);
+        setCropY(0);
+    };
+
+    const handleCropSave = async () => {
+        if (!cropImageSrc) return;
+
         setIsSavingAvatar(true);
         try {
-            const avatarDataUrl = await compressImageToDataUrl(file);
-
+            const avatarDataUrl = await createCroppedAvatarDataUrl(cropImageSrc, {
+                zoom: cropZoom,
+                x: cropX,
+                y: cropY,
+                previewSize: 260
+            });
             const docRef = doc(db, 'users', user.uid);
             await updateDoc(docRef, { photoURL: avatarDataUrl });
             setUserData(prev => ({ ...prev, photoURL: avatarDataUrl }));
+            handleCropCancel();
             setIsAvatarModalOpen(false);
         } catch (error) {
-            console.error('Error uploading avatar:', error);
-            alert(`Failed to upload profile picture: ${error.message}`);
+            console.error('Error saving cropped avatar:', error);
+            alert(`Failed to save profile picture: ${error.message}`);
         } finally {
             setIsSavingAvatar(false);
-            e.target.value = '';
         }
     };
 
@@ -685,62 +726,115 @@ const Profile = ({ user }) => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h2 style={{ fontSize: '1.5rem' }}>Select an Avatar</h2>
                             <button
-                                onClick={() => setIsAvatarModalOpen(false)}
+                                onClick={() => {
+                                    handleCropCancel();
+                                    setIsAvatarModalOpen(false);
+                                }}
                                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                             >
                                 <X size={24} />
                             </button>
                         </div>
 
-                        <label
-                            className="btn-primary"
-                            style={{
-                                marginBottom: '1.25rem',
-                                cursor: isSavingAvatar ? 'not-allowed' : 'pointer',
-                                opacity: isSavingAvatar ? 0.7 : 1
-                            }}
-                        >
-                            <Camera size={18} />
-                            {isSavingAvatar ? 'Uploading...' : 'Upload Profile Picture'}
-                            <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp,image/gif"
-                                onChange={handleAvatarUpload}
-                                disabled={isSavingAvatar}
-                                style={{ display: 'none' }}
-                            />
-                        </label>
-
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-                            Upload a picture under 2MB, or choose one of the avatars below.
-                        </p>
-
-                        <div style={{
-                            overflowY: 'auto',
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
-                            gap: '1rem',
-                            padding: '0.5rem'
-                        }}>
-                            {AVATARS.map((url, idx) => (
-                                <div
-                                    key={idx}
-                                    onClick={() => !isSavingAvatar && handleAvatarSelect(url)}
-                                    style={{
-                                        width: '80px', height: '80px', borderRadius: '50%',
-                                        background: 'rgba(255,255,255,0.05)',
-                                        cursor: isSavingAvatar ? 'not-allowed' : 'pointer',
-                                        transition: 'transform 0.2s',
-                                        border: (userData?.photoURL || user?.photoURL) === url ? '3px solid var(--primary-accent)' : '3px solid transparent',
-                                        overflow: 'hidden'
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                                >
-                                    <img src={url} alt={`Avatar ${idx}`} style={{ width: '100%', height: '100%' }} />
+                        {cropImageSrc ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                                <div style={{
+                                    width: '260px', height: '260px', borderRadius: '50%',
+                                    overflow: 'hidden', position: 'relative',
+                                    background: 'rgba(0,0,0,0.35)',
+                                    border: '2px solid var(--primary-accent)'
+                                }}>
+                                    <img
+                                        src={cropImageSrc}
+                                        alt="Crop preview"
+                                        style={{
+                                            position: 'absolute', top: '50%', left: '50%',
+                                            maxWidth: 'none', width: '100%', height: '100%',
+                                            objectFit: 'cover',
+                                            transform: `translate(calc(-50% + ${cropX}px), calc(-50% + ${cropY}px)) scale(${cropZoom})`,
+                                            transformOrigin: 'center',
+                                            userSelect: 'none', pointerEvents: 'none'
+                                        }}
+                                    />
                                 </div>
-                            ))}
-                        </div>
+
+                                <div style={{ width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                        Zoom
+                                        <input type="range" min="1" max="3" step="0.05" value={cropZoom} onChange={(e) => setCropZoom(Number(e.target.value))} style={{ width: '100%' }} />
+                                    </label>
+                                    <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                        Horizontal
+                                        <input type="range" min="-100" max="100" step="1" value={cropX} onChange={(e) => setCropX(Number(e.target.value))} style={{ width: '100%' }} />
+                                    </label>
+                                    <label style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                        Vertical
+                                        <input type="range" min="-100" max="100" step="1" value={cropY} onChange={(e) => setCropY(Number(e.target.value))} style={{ width: '100%' }} />
+                                    </label>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '0.75rem', width: '100%', maxWidth: '420px' }}>
+                                    <button onClick={handleCropCancel} className="btn-secondary" disabled={isSavingAvatar} style={{ flex: 1 }}>
+                                        Cancel
+                                    </button>
+                                    <button onClick={handleCropSave} className="btn-primary" disabled={isSavingAvatar} style={{ flex: 1, justifyContent: 'center' }}>
+                                        {isSavingAvatar ? 'Saving...' : 'Save Crop'}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <label
+                                    className="btn-primary"
+                                    style={{
+                                        marginBottom: '1.25rem',
+                                        cursor: isSavingAvatar ? 'not-allowed' : 'pointer',
+                                        opacity: isSavingAvatar ? 0.7 : 1
+                                    }}
+                                >
+                                    <Camera size={18} />
+                                    {isSavingAvatar ? 'Saving...' : 'Upload Profile Picture'}
+                                    <input
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/webp,image/gif"
+                                        onChange={handleAvatarUpload}
+                                        disabled={isSavingAvatar}
+                                        style={{ display: 'none' }}
+                                    />
+                                </label>
+
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                                    Upload a picture under 2MB, or choose one of the avatars below.
+                                </p>
+
+                                <div style={{
+                                    overflowY: 'auto',
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+                                    gap: '1rem',
+                                    padding: '0.5rem'
+                                }}>
+                                    {AVATARS.map((url, idx) => (
+                                        <div
+                                            key={idx}
+                                            onClick={() => !isSavingAvatar && handleAvatarSelect(url)}
+                                            style={{
+                                                width: '80px', height: '80px', borderRadius: '50%',
+                                                background: 'rgba(255,255,255,0.05)',
+                                                cursor: isSavingAvatar ? 'not-allowed' : 'pointer',
+                                                transition: 'transform 0.2s',
+                                                border: (userData?.photoURL || user?.photoURL) === url ? '3px solid var(--primary-accent)' : '3px solid transparent',
+                                                overflow: 'hidden'
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                        >
+                                            <img src={url} alt={`Avatar ${idx}`} style={{ width: '100%', height: '100%' }} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
