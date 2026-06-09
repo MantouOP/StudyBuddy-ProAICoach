@@ -2,23 +2,28 @@
 
 :root {
   /* Color Palette */
-  --bg-primary: #ffffff;
-  --bg-secondary: #ffffff;
+  --bg-primary: #0f172a;
+  /* Slate 900 */
+  --bg-secondary: #020617;
+  /* Slate 950 */
 
   --primary-accent: #6366f1;
   /* Indigo 500 */
-  --primary-glow: rgba(99, 102, 241, 0.12);
+  --primary-glow: rgba(99, 102, 241, 0.4);
 
   --secondary-accent: #ec4899;
   /* Pink 500 */
-  --secondary-glow: rgba(236, 72, 153, 0.12);
+  --secondary-glow: rgba(236, 72, 153, 0.4);
 
-  --text-main: #111827;
-  --text-muted: #6b7280;
+  --text-main: #f8fafc;
+  /* Slate 50 */
+  --text-muted: #94a3b8;
+  /* Slate 400 */
 
-  --glass-bg: #ffffff;
-  --glass-border: #e5e7eb;
-  --glass-shadow: 0 8px 28px 0 rgba(15, 23, 42, 0.08);
+  --glass-bg: rgba(30, 41, 59, 0.4);
+  /* Slate 800 with opacity */
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 
   --danger: #ef4444;
   --success: #10b981;
@@ -50,9 +55,11 @@ body {
   color: var(--text-main);
   min-height: 100vh;
   overflow-x: hidden;
-  background-image: none;
-  background-attachment: initial;
-  animation: none;
+  background-image:
+    radial-gradient(circle at 15% 50%, var(--primary-glow), transparent 25%),
+    radial-gradient(circle at 85% 30%, var(--secondary-glow), transparent 25%);
+  background-attachment: fixed;
+  animation: bgPulse 15s ease-in-out infinite alternate;
 }
 
 @keyframes bgPulse {
@@ -87,8 +94,8 @@ body {
 
 .glass-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 36px 0 rgba(15, 23, 42, 0.12);
-  border-color: #cbd5e1;
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Typography */
@@ -150,7 +157,7 @@ h6 {
 }
 
 .btn-secondary {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--glass-border);
   color: var(--text-main);
   padding: 0.75rem 1.5rem;
@@ -162,13 +169,13 @@ h6 {
 }
 
 .btn-secondary:hover {
-  background: #f8fafc;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Forms */
 .input-field {
   width: 100%;
-  background: #ffffff;
+  background: rgba(15, 23, 42, 0.6);
   border: 1px solid var(--glass-border);
   color: var(--text-main);
   padding: 0.875rem 1.25rem;
@@ -205,7 +212,7 @@ h6 {
   border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: rgba(2, 6, 23, 0.4);
   backdrop-filter: blur(16px);
   z-index: 10;
 }

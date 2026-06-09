@@ -25,22 +25,26 @@ const socialProviders = [
     {
         name: 'Google',
         provider: googleProvider,
-        icon: <img src="https://www.google.com/favicon.ico" alt="" style={{ width: '18px', height: '18px' }} />
+        icon: <img src="https://www.google.com/favicon.ico" alt="" style={{ width: '18px', height: '18px' }} />,
+        buttonStyle: { backgroundColor: 'white', color: '#333' }
     },
     {
         name: 'Microsoft',
         provider: microsoftProvider,
-        icon: <MicrosoftIcon />
+        icon: <MicrosoftIcon />,
+        buttonStyle: { backgroundColor: 'rgba(15, 23, 42, 0.35)', color: 'white' }
     },
     {
         name: 'Apple',
         provider: appleProvider,
-        icon: <Apple size={18} />
+        icon: <Apple size={18} />,
+        buttonStyle: { backgroundColor: 'rgba(15, 23, 42, 0.35)', color: 'white' }
     },
     {
         name: 'GitHub',
         provider: githubProvider,
-        icon: <Github size={18} />
+        icon: <Github size={18} />,
+        buttonStyle: { backgroundColor: 'rgba(15, 23, 42, 0.35)', color: 'white' }
     }
 ];
 
@@ -201,14 +205,14 @@ const Login = () => {
                         <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
                     </div>
 
-                    {socialProviders.map(({ name, provider, icon }) => (
+                    {socialProviders.map(({ name, provider, icon, buttonStyle }) => (
                         <button
                             key={name}
                             type="button"
                             onClick={() => handleSocialSignIn(provider, name)}
                             className="btn-secondary"
                             disabled={loading}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'white', color: '#1f2937' }}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', ...buttonStyle }}
                         >
                             {icon}
                             Sign in with {name}
