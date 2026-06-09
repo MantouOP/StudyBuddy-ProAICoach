@@ -251,6 +251,27 @@ h6 {
   border-left: 3px solid var(--primary-accent);
 }
 
+.sidebar-links,
+.nav-main,
+.nav-account {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.sidebar-links {
+  flex: 1;
+}
+
+.nav-main {
+  flex: 1;
+}
+
+.nav-account {
+  margin-top: auto;
+}
+
 @media (max-width: 960px) {
   body {
     overflow-x: hidden;
@@ -285,8 +306,8 @@ h6 {
     display: none;
   }
 
-  .sidebar nav,
-  .sidebar > div:last-child {
+  .sidebar-links {
+    flex: 0 0 auto;
     flex-direction: row !important;
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -296,35 +317,31 @@ h6 {
     scrollbar-width: thin;
   }
 
-  .sidebar nav::-webkit-scrollbar,
-  .sidebar > div:last-child::-webkit-scrollbar {
+  .nav-main,
+  .nav-account {
+    flex: 0 0 auto;
+    flex-direction: row !important;
+    gap: 0.35rem !important;
+    margin-top: 0;
+  }
+
+  .sidebar-links::-webkit-scrollbar {
     height: 10px;
   }
 
-  .sidebar nav::-webkit-scrollbar-track,
-  .sidebar > div:last-child::-webkit-scrollbar-track {
+  .sidebar-links::-webkit-scrollbar-track {
     background: rgba(15, 23, 42, 0.85);
     border-radius: 999px;
   }
 
-  .sidebar nav::-webkit-scrollbar-thumb,
-  .sidebar > div:last-child::-webkit-scrollbar-thumb {
+  .sidebar-links::-webkit-scrollbar-thumb {
     background: rgba(148, 163, 184, 0.65);
     border: 2px solid rgba(15, 23, 42, 0.85);
     border-radius: 999px;
   }
 
-  .sidebar nav::-webkit-scrollbar-thumb:hover,
-  .sidebar > div:last-child::-webkit-scrollbar-thumb:hover {
+  .sidebar-links::-webkit-scrollbar-thumb:hover {
     background: rgba(203, 213, 225, 0.8);
-  }
-
-  .sidebar nav {
-    flex: 0 0 auto !important;
-  }
-
-  .sidebar > div:last-child {
-    margin-top: 0 !important;
   }
 
   .nav-link {
