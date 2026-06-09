@@ -1,13 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../firebase';
+import { db } from '../firebase';
 import { updateProfile } from 'firebase/auth';
 import { Mail, GraduationCap, BookOpen, Clock, Activity, Edit2, Check, Trophy, Medal, Star, Crown, Zap, Code, Terminal, Brain, Camera, Lock, X } from 'lucide-react';
 import { getBorderClass } from '../utils/borders';
 
 const AVATAR_API = "https://api.dicebear.com/9.x/bottts/svg?seed=";
 const AVATARS = Array.from({ length: 50 }, (_, i) => `${AVATAR_API}CuteBot${i}`);
+
+const compressImageToDataUrl = (file, maxSize = 320, quality = 0.82) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read image file.'));
+    reader.onload = () => {
+        const image = new Image();
+        image.onerror = () => reject(new Error('Could not load image file.'));
+        image.onload = () => {
+            const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+            const width = Math.max(1, Math.round(image.width * scale));
+            const height = Math.max(1, Math.round(image.height * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(image, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+});
 
 const ALL_BORDERS = [
     { title: 'Iron Novice', color: '#57534e', unlockAt: 0 },
@@ -230,15 +251,11 @@ const Profile = ({ user }) => {
 
         setIsSavingAvatar(true);
         try {
-            const extension = file.name.split('.').pop() || 'jpg';
-            const avatarRef = ref(storage, `profilePictures/${user.uid}/avatar-${Date.now()}.${extension}`);
-            await uploadBytes(avatarRef, file, { contentType: file.type });
-            const downloadUrl = await getDownloadURL(avatarRef);
+            const avatarDataUrl = await compressImageToDataUrl(file);
 
-            await updateProfile(user, { photoURL: downloadUrl });
             const docRef = doc(db, 'users', user.uid);
-            await updateDoc(docRef, { photoURL: downloadUrl });
-            setUserData(prev => ({ ...prev, photoURL: downloadUrl }));
+            await updateDoc(docRef, { photoURL: avatarDataUrl });
+            setUserData(prev => ({ ...prev, photoURL: avatarDataUrl }));
             setIsAvatarModalOpen(false);
         } catch (error) {
             console.error('Error uploading avatar:', error);
