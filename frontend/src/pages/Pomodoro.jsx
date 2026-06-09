@@ -61,6 +61,29 @@ const Pomodoro = ({ user }) => {
         joinedAt: new Date().toISOString()
     });
 
+    const isRoomHost = Boolean(activeRoomCode && activeRoom?.hostId === user?.uid);
+    const roomControlDisabled = Boolean(activeRoomCode && !isRoomHost);
+
+    const getDurationForMode = (mode) => {
+        if (mode === 'shortBreak') return shortBreakMinutes * 60;
+        if (mode === 'longBreak') return longBreakMinutes * 60;
+        return focusMinutes * 60;
+    };
+
+    const updateRoomTimer = async (timerUpdates) => {
+        if (!activeRoomCode || !isRoomHost) return;
+
+        try {
+            await updateDoc(doc(db, 'focusRooms', activeRoomCode), {
+                ...timerUpdates,
+                updatedAt: serverTimestamp()
+            });
+        } catch (err) {
+            console.error('Error syncing focus room timer:', err);
+            setRoomError('Could not sync the room timer.');
+        }
+    };
+
 
     // Initialize from Local Storage
     useEffect(() => {
@@ -114,7 +137,7 @@ const Pomodoro = ({ user }) => {
     };
 
     const updateTimeFromPointer = (clientX, clientY) => {
-        if (!svgRef.current || isActive) return;
+        if (!svgRef.current || isActive || roomControlDisabled) return;
         const bounds = svgRef.current.getBoundingClientRect();
         const centerX = bounds.left + bounds.width / 2;
         const centerY = bounds.top + bounds.height / 2;
@@ -168,6 +191,16 @@ const Pomodoro = ({ user }) => {
                 else if (timerMode === 'shortBreak') conf.short = finalMin;
                 else conf.long = finalMin;
                 localStorage.setItem('pomodoroConfig', JSON.stringify(conf));
+
+                updateRoomTimer({
+                    'timer.mode': timerMode,
+                    'timer.timeLeft': finalMin * 60,
+                    'timer.isActive': false,
+                    'timer.endsAt': null,
+                    'timer.focusMinutes': focusMinutes,
+                    'timer.shortBreakMinutes': shortBreakMinutes,
+                    'timer.longBreakMinutes': longBreakMinutes
+                });
             }
         };
 
@@ -188,6 +221,11 @@ const Pomodoro = ({ user }) => {
 
 
     const applySettings = () => {
+        if (roomControlDisabled) {
+            setRoomError('Only the host can change the shared timer settings.');
+            return;
+        }
+
         const f = Math.min(180, Math.max(1, tempFocus));
         const s = Math.max(1, tempShort);
         const l = Math.max(1, tempLong);
@@ -201,6 +239,15 @@ const Pomodoro = ({ user }) => {
         setTimeLeft(f * 60);
         targetEndTimeRef.current = null;
         saveState(false, f * 60, 'focus', sessionCount, null);
+        updateRoomTimer({
+            'timer.mode': 'focus',
+            'timer.timeLeft': f * 60,
+            'timer.isActive': false,
+            'timer.endsAt': null,
+            'timer.focusMinutes': f,
+            'timer.shortBreakMinutes': s,
+            'timer.longBreakMinutes': l
+        });
     };
 
     useEffect(() => {
@@ -235,7 +282,40 @@ const Pomodoro = ({ user }) => {
                 setRoomError('Focus room no longer exists.');
                 return;
             }
-            setActiveRoom({ id: snapshot.id, ...snapshot.data() });
+            const roomData = { id: snapshot.id, ...snapshot.data() };
+            const roomTimer = roomData.timer;
+            setActiveRoom(roomData);
+
+            if (roomTimer) {
+                const nextMode = roomTimer.mode || 'focus';
+                setTimerMode(nextMode);
+
+                if (typeof roomTimer.focusMinutes === 'number') {
+                    setFocusMinutes(roomTimer.focusMinutes);
+                    setTempFocus(roomTimer.focusMinutes);
+                }
+                if (typeof roomTimer.shortBreakMinutes === 'number') {
+                    setShortBreakMinutes(roomTimer.shortBreakMinutes);
+                    setTempShort(roomTimer.shortBreakMinutes);
+                }
+                if (typeof roomTimer.longBreakMinutes === 'number') {
+                    setLongBreakMinutes(roomTimer.longBreakMinutes);
+                    setTempLong(roomTimer.longBreakMinutes);
+                }
+
+                if (roomTimer.isActive && roomTimer.endsAt) {
+                    const remaining = Math.max(0, Math.floor((roomTimer.endsAt - Date.now()) / 1000));
+                    targetEndTimeRef.current = roomTimer.endsAt;
+                    setTimeLeft(remaining);
+                    setIsActive(true);
+                    saveState(true, remaining, nextMode, sessionCount, roomTimer.endsAt);
+                } else if (typeof roomTimer.timeLeft === 'number') {
+                    targetEndTimeRef.current = null;
+                    setIsActive(false);
+                    setTimeLeft(roomTimer.timeLeft);
+                    saveState(false, roomTimer.timeLeft, nextMode, sessionCount, null);
+                }
+            }
         }, (err) => {
             console.error('Error listening to focus room:', err);
             setRoomError('Could not load focus room.');
@@ -255,6 +335,10 @@ const Pomodoro = ({ user }) => {
                 hostName: displayName,
                 status: 'waiting',
                 timer: {
+                    mode: timerMode,
+                    timeLeft,
+                    isActive: false,
+                    endsAt: null,
                     focusMinutes,
                     shortBreakMinutes,
                     longBreakMinutes
@@ -589,9 +673,23 @@ const Pomodoro = ({ user }) => {
         setTimerMode(newMode);
         setTimeLeft(newTimeLeft);
         saveState(false, newTimeLeft, newMode, newSessionCount, null);
+        updateRoomTimer({
+            'timer.mode': newMode,
+            'timer.timeLeft': newTimeLeft,
+            'timer.isActive': false,
+            'timer.endsAt': null,
+            'timer.focusMinutes': focusMinutes,
+            'timer.shortBreakMinutes': shortBreakMinutes,
+            'timer.longBreakMinutes': longBreakMinutes
+        });
     };
 
     const toggleTimer = () => {
+        if (roomControlDisabled) {
+            setRoomError('Only the host can control the shared timer.');
+            return;
+        }
+
         if (!isActive) {
             // Initialize audio context and request notification permission on user gesture
             if (!window.audioCtx) {
@@ -605,17 +703,45 @@ const Pomodoro = ({ user }) => {
                 Notification.requestPermission();
             }
 
-            targetEndTimeRef.current = Date.now() + timeLeft * 1000;
+            const nextEndTime = Date.now() + timeLeft * 1000;
+            targetEndTimeRef.current = nextEndTime;
             setIsActive(true);
-            saveState(true, timeLeft, timerMode, sessionCount, targetEndTimeRef.current);
+            saveState(true, timeLeft, timerMode, sessionCount, nextEndTime);
+            updateRoomTimer({
+                'timer.mode': timerMode,
+                'timer.timeLeft': timeLeft,
+                'timer.isActive': true,
+                'timer.endsAt': nextEndTime,
+                'timer.focusMinutes': focusMinutes,
+                'timer.shortBreakMinutes': shortBreakMinutes,
+                'timer.longBreakMinutes': longBreakMinutes
+            });
         } else {
+            const pausedTimeLeft = targetEndTimeRef.current
+                ? Math.max(0, Math.floor((targetEndTimeRef.current - Date.now()) / 1000))
+                : timeLeft;
             targetEndTimeRef.current = null;
             setIsActive(false);
-            saveState(false, timeLeft, timerMode, sessionCount, null);
+            setTimeLeft(pausedTimeLeft);
+            saveState(false, pausedTimeLeft, timerMode, sessionCount, null);
+            updateRoomTimer({
+                'timer.mode': timerMode,
+                'timer.timeLeft': pausedTimeLeft,
+                'timer.isActive': false,
+                'timer.endsAt': null,
+                'timer.focusMinutes': focusMinutes,
+                'timer.shortBreakMinutes': shortBreakMinutes,
+                'timer.longBreakMinutes': longBreakMinutes
+            });
         }
     };
 
     const resetTimer = () => {
+        if (roomControlDisabled) {
+            setRoomError('Only the host can reset the shared timer.');
+            return;
+        }
+
         setIsActive(false);
         targetEndTimeRef.current = null;
         let newTime = focusMinutes * 60;
@@ -624,18 +750,39 @@ const Pomodoro = ({ user }) => {
 
         setTimeLeft(newTime);
         saveState(false, newTime, timerMode, sessionCount, null);
+        updateRoomTimer({
+            'timer.mode': timerMode,
+            'timer.timeLeft': newTime,
+            'timer.isActive': false,
+            'timer.endsAt': null,
+            'timer.focusMinutes': focusMinutes,
+            'timer.shortBreakMinutes': shortBreakMinutes,
+            'timer.longBreakMinutes': longBreakMinutes
+        });
     };
 
     const changeMode = (mode) => {
-        let newTime = focusMinutes * 60;
-        if (mode === 'shortBreak') newTime = shortBreakMinutes * 60;
-        else if (mode === 'longBreak') newTime = longBreakMinutes * 60;
+        if (roomControlDisabled) {
+            setRoomError('Only the host can change the shared timer mode.');
+            return;
+        }
+
+        const newTime = getDurationForMode(mode);
 
         setIsActive(false);
         setTimerMode(mode);
         setTimeLeft(newTime);
         targetEndTimeRef.current = null;
         saveState(false, newTime, mode, sessionCount, null);
+        updateRoomTimer({
+            'timer.mode': mode,
+            'timer.timeLeft': newTime,
+            'timer.isActive': false,
+            'timer.endsAt': null,
+            'timer.focusMinutes': focusMinutes,
+            'timer.shortBreakMinutes': shortBreakMinutes,
+            'timer.longBreakMinutes': longBreakMinutes
+        });
     }
 
     const formatTime = (seconds) => {
@@ -649,6 +796,11 @@ const Pomodoro = ({ user }) => {
     const displayPercent = (timeLeft / (MAX_MINUTES * 60)) * 100;
     const circleCircumference = 282.74; // 2 * pi * 45
     const strokeDashoffset = circleCircumference - (circleCircumference * displayPercent) / 100;
+    const roomTimerLabel = activeRoom?.timer?.mode === 'shortBreak'
+        ? 'Short break'
+        : activeRoom?.timer?.mode === 'longBreak'
+            ? 'Long break'
+            : 'Focus';
 
 
     return (
@@ -695,7 +847,8 @@ const Pomodoro = ({ user }) => {
                                 <button
                                     className={`btn-secondary ${timerMode === 'focus' ? 'active-mode' : ''}`}
                                     onClick={() => changeMode('focus')}
-                                    style={{ width: '100%', borderColor: timerMode === 'focus' ? 'var(--primary-accent)' : '', color: timerMode === 'focus' ? 'var(--primary-accent)' : '' }}
+                                    disabled={roomControlDisabled}
+                                    style={{ width: '100%', borderColor: timerMode === 'focus' ? 'var(--primary-accent)' : '', color: timerMode === 'focus' ? 'var(--primary-accent)' : '', opacity: roomControlDisabled ? 0.6 : 1, cursor: roomControlDisabled ? 'not-allowed' : 'pointer' }}
                                 >
                                     <Brain size={18} style={{ marginRight: '8px' }} /> Focus
                                 </button>
@@ -703,14 +856,16 @@ const Pomodoro = ({ user }) => {
                                     <button
                                         className={`btn-secondary ${timerMode === 'shortBreak' ? 'active-mode' : ''}`}
                                         onClick={() => changeMode('shortBreak')}
-                                        style={{ flex: 1, borderColor: timerMode === 'shortBreak' ? 'var(--secondary-accent)' : '', color: timerMode === 'shortBreak' ? 'var(--secondary-accent)' : '' }}
+                                        disabled={roomControlDisabled}
+                                        style={{ flex: 1, borderColor: timerMode === 'shortBreak' ? 'var(--secondary-accent)' : '', color: timerMode === 'shortBreak' ? 'var(--secondary-accent)' : '', opacity: roomControlDisabled ? 0.6 : 1, cursor: roomControlDisabled ? 'not-allowed' : 'pointer' }}
                                     >
                                         <Coffee size={16} style={{ marginRight: '6px' }} /> Short Break
                                     </button>
                                     <button
                                         className={`btn-secondary ${timerMode === 'longBreak' ? 'active-mode' : ''}`}
                                         onClick={() => changeMode('longBreak')}
-                                        style={{ flex: 1, borderColor: timerMode === 'longBreak' ? 'var(--secondary-accent)' : '', color: timerMode === 'longBreak' ? 'var(--secondary-accent)' : '' }}
+                                        disabled={roomControlDisabled}
+                                        style={{ flex: 1, borderColor: timerMode === 'longBreak' ? 'var(--secondary-accent)' : '', color: timerMode === 'longBreak' ? 'var(--secondary-accent)' : '', opacity: roomControlDisabled ? 0.6 : 1, cursor: roomControlDisabled ? 'not-allowed' : 'pointer' }}
                                     >
                                         <Coffee size={16} style={{ marginRight: '6px' }} /> Long Break
                                     </button>
@@ -719,19 +874,19 @@ const Pomodoro = ({ user }) => {
 
                             {/* Animated Timer Display */}
                             <div 
-                                style={{ position: 'relative', width: '300px', height: '300px', margin: '0 auto 2.5rem', cursor: isActive ? 'default' : 'pointer', touchAction: 'none' }}
+                                style={{ position: 'relative', width: '300px', height: '300px', margin: '0 auto 2.5rem', cursor: isActive || roomControlDisabled ? 'default' : 'pointer', touchAction: 'none' }}
                                 onMouseDown={(e) => {
-                                    if (isActive) return;
+                                    if (isActive || roomControlDisabled) return;
                                     setIsDragging(true);
                                     updateTimeFromPointer(e.clientX, e.clientY);
                                 }}
                                 onTouchStart={(e) => {
-                                    if (isActive) return;
+                                    if (isActive || roomControlDisabled) return;
                                     setIsDragging(true);
                                     updateTimeFromPointer(e.touches[0].clientX, e.touches[0].clientY);
                                 }}
                                 ref={svgRef}
-                                title={!isActive ? "Drag to adjust the timer duration" : ""}
+                                title={!isActive && !roomControlDisabled ? "Drag to adjust the timer duration" : ""}
                             >
                                 <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)', overflow: 'visible' }} viewBox="0 0 100 100">
                                     {/* Background track */}
@@ -782,10 +937,10 @@ const Pomodoro = ({ user }) => {
                                     </button>
                                 ) : (
                                     <>
-                                        <button onClick={toggleTimer} className="btn-primary" style={{ width: '140px' }}>
+                                        <button onClick={toggleTimer} className="btn-primary" disabled={roomControlDisabled} style={{ width: '140px', opacity: roomControlDisabled ? 0.6 : 1, cursor: roomControlDisabled ? 'not-allowed' : 'pointer' }}>
                                             {isActive ? <><Pause size={20} /> Pause</> : <><Play size={20} /> Start</>}
                                         </button>
-                                        <button onClick={resetTimer} className="btn-secondary">
+                                        <button onClick={resetTimer} className="btn-secondary" disabled={roomControlDisabled} style={{ opacity: roomControlDisabled ? 0.6 : 1, cursor: roomControlDisabled ? 'not-allowed' : 'pointer' }}>
                                             <RotateCcw size={20} />
                                         </button>
                                     </>
@@ -829,6 +984,25 @@ const Pomodoro = ({ user }) => {
                                     <Copy size={16} /> {roomCopied ? 'Copied' : 'Copy'}
                                 </button>
                             </div>
+                        </div>
+
+                        <div style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem',
+                            background: 'rgba(0,0,0,0.18)', border: '1px solid var(--glass-border)',
+                            borderRadius: '10px', padding: '0.85rem 1rem'
+                        }}>
+                            <div>
+                                <p style={{ margin: 0, color: 'var(--text-main)', fontWeight: 700 }}>{roomTimerLabel}</p>
+                                <p style={{ margin: '0.2rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                    {isRoomHost ? 'You control this room timer' : `${activeRoom?.hostName || 'Host'} controls this timer`}
+                                </p>
+                            </div>
+                            <span style={{
+                                color: activeRoom?.timer?.isActive ? 'var(--success)' : 'var(--text-muted)',
+                                fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em'
+                            }}>
+                                {activeRoom?.timer?.isActive ? 'Running' : 'Ready'}
+                            </span>
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
