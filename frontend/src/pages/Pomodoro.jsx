@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Coffee, Brain, History, Trash2, Download, Settings, X, Save, BellOff } from 'lucide-react';
-import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc, getDocs, query, orderBy, deleteDoc } from 'firebase/firestore';
+import { Play, Pause, RotateCcw, Coffee, Brain, History, Trash2, Download, Settings, X, Save, BellOff, Users, Copy, LogIn, LogOut } from 'lucide-react';
+import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc, getDocs, query, orderBy, deleteDoc, setDoc, onSnapshot, serverTimestamp, deleteField } from 'firebase/firestore';
 import { db } from '../firebase';
 import html2pdf from 'html2pdf.js';
 
@@ -15,6 +15,11 @@ const RANK_BORDER_REWARDS = [
     { title: 'Radiant Polymath', color: '#fef08a', unlockAt: 150 },
     { title: 'Transcendent Luminary', color: '#c084fc', unlockAt: 250 }
 ];
+
+const generateRoomCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+};
 
 const Pomodoro = ({ user }) => {
     const [focusMinutes, setFocusMinutes] = useState(25);
@@ -36,10 +41,25 @@ const Pomodoro = ({ user }) => {
     const targetEndTimeRef = useRef(null);
     const ringingIntervalRef = useRef(null);
     const [isAlarmRinging, setIsAlarmRinging] = useState(false);
+    const [roomCodeInput, setRoomCodeInput] = useState('');
+    const [activeRoomCode, setActiveRoomCode] = useState('');
+    const [activeRoom, setActiveRoom] = useState(null);
+    const [roomError, setRoomError] = useState('');
+    const [roomCopied, setRoomCopied] = useState(false);
 
     // Circular Drag Timer States
     const svgRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);
+
+    const displayName = user?.displayName || user?.email?.split('@')[0] || 'StudyBuddy';
+
+    const getRoomMember = () => ({
+        uid: user.uid,
+        name: displayName,
+        email: user.email || '',
+        photoURL: user.photoURL || '',
+        joinedAt: new Date().toISOString()
+    });
 
 
     // Initialize from Local Storage
@@ -198,6 +218,117 @@ const Pomodoro = ({ user }) => {
             setFocusHistory(fetched);
         } catch (err) {
             console.error('Error fetching focus history:', err);
+        }
+    };
+
+    useEffect(() => {
+        if (!activeRoomCode) {
+            setActiveRoom(null);
+            return;
+        }
+
+        const roomRef = doc(db, 'focusRooms', activeRoomCode);
+        const unsubscribe = onSnapshot(roomRef, (snapshot) => {
+            if (!snapshot.exists()) {
+                setActiveRoom(null);
+                setActiveRoomCode('');
+                setRoomError('Focus room no longer exists.');
+                return;
+            }
+            setActiveRoom({ id: snapshot.id, ...snapshot.data() });
+        }, (err) => {
+            console.error('Error listening to focus room:', err);
+            setRoomError('Could not load focus room.');
+        });
+
+        return unsubscribe;
+    }, [activeRoomCode]);
+
+    const handleCreateRoom = async () => {
+        setRoomError('');
+        try {
+            const code = generateRoomCode();
+            const roomRef = doc(db, 'focusRooms', code);
+            await setDoc(roomRef, {
+                code,
+                hostId: user.uid,
+                hostName: displayName,
+                status: 'waiting',
+                timer: {
+                    focusMinutes,
+                    shortBreakMinutes,
+                    longBreakMinutes
+                },
+                members: {
+                    [user.uid]: getRoomMember()
+                },
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            });
+            setActiveRoomCode(code);
+            setRoomCodeInput('');
+            setRoomCopied(false);
+        } catch (err) {
+            console.error('Error creating focus room:', err);
+            setRoomError('Could not create focus room.');
+        }
+    };
+
+    const handleJoinRoom = async (e) => {
+        e.preventDefault();
+        setRoomError('');
+        const code = roomCodeInput.trim().toUpperCase();
+        if (code.length < 4) {
+            setRoomError('Enter a valid room code.');
+            return;
+        }
+
+        try {
+            const roomRef = doc(db, 'focusRooms', code);
+            const roomSnap = await getDoc(roomRef);
+            if (!roomSnap.exists()) {
+                setRoomError('No focus room found with that code.');
+                return;
+            }
+
+            await updateDoc(roomRef, {
+                [`members.${user.uid}`]: getRoomMember(),
+                updatedAt: serverTimestamp()
+            });
+            setActiveRoomCode(code);
+            setRoomCodeInput('');
+            setRoomCopied(false);
+        } catch (err) {
+            console.error('Error joining focus room:', err);
+            setRoomError('Could not join focus room.');
+        }
+    };
+
+    const handleLeaveRoom = async () => {
+        if (!activeRoomCode) return;
+        try {
+            const roomRef = doc(db, 'focusRooms', activeRoomCode);
+            await updateDoc(roomRef, {
+                [`members.${user.uid}`]: deleteField(),
+                updatedAt: serverTimestamp()
+            });
+        } catch (err) {
+            console.error('Error leaving focus room:', err);
+        }
+        setActiveRoomCode('');
+        setActiveRoom(null);
+        setRoomCopied(false);
+    };
+
+    const handleCopyRoomCode = async () => {
+        if (!activeRoomCode) return;
+        try {
+            await navigator.clipboard.writeText(activeRoomCode);
+            setRoomCopied(true);
+            setTimeout(() => setRoomCopied(false), 1800);
+        } catch (err) {
+            console.error('Error copying room code:', err);
+            setRoomError(`Room code: ${activeRoomCode}`);
         }
     };
 
@@ -668,6 +799,99 @@ const Pomodoro = ({ user }) => {
                     )}
 
                 </div>
+            </div>
+
+            {/* Focus Room Panel */}
+            <div className="glass-card" style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)', margin: 0 }}>
+                        <Users size={20} color="var(--primary-accent)" />
+                        Focus Room
+                    </h3>
+                    {activeRoomCode && (
+                        <button
+                            onClick={handleLeaveRoom}
+                            className="btn-secondary"
+                            style={{ padding: '0.45rem 0.75rem', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--danger)' }}
+                        >
+                            <LogOut size={16} /> Leave
+                        </button>
+                    )}
+                </div>
+
+                {activeRoomCode ? (
+                    <>
+                        <div style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.35)', borderRadius: '12px', padding: '1rem' }}>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>Invite Code</p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                                <strong style={{ fontSize: '1.6rem', letterSpacing: '0.12em', color: 'var(--text-main)' }}>{activeRoomCode}</strong>
+                                <button onClick={handleCopyRoomCode} className="btn-secondary" style={{ padding: '0.55rem 0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Copy size={16} /> {roomCopied ? 'Copied' : 'Copy'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                {(activeRoom?.members && Object.keys(activeRoom.members).length) || 1} buddy/buddies in this room
+                            </p>
+                            {Object.values(activeRoom?.members || {}).map(member => (
+                                <div key={member.uid} style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                    background: 'rgba(0,0,0,0.18)', border: '1px solid var(--glass-border)',
+                                    borderRadius: '10px', padding: '0.75rem'
+                                }}>
+                                    <div style={{
+                                        width: '34px', height: '34px', borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, var(--primary-accent), var(--secondary-accent))',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        overflow: 'hidden', flexShrink: 0, color: 'white', fontWeight: 700
+                                    }}>
+                                        {member.photoURL ? (
+                                            <img src={member.photoURL} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            member.name?.charAt(0)?.toUpperCase() || '?'
+                                        )}
+                                    </div>
+                                    <div style={{ minWidth: 0 }}>
+                                        <p style={{ margin: 0, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{member.name}</p>
+                                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                                            {member.uid === activeRoom?.hostId ? 'Host' : 'Joined'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                            Create a room and share the code so friends can focus with you.
+                        </p>
+
+                        <button onClick={handleCreateRoom} className="btn-primary" style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                            <Users size={18} /> Create Focus Room
+                        </button>
+
+                        <form onSubmit={handleJoinRoom} style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input
+                                className="input-field"
+                                value={roomCodeInput}
+                                onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
+                                placeholder="Room code"
+                                maxLength={8}
+                                style={{ textTransform: 'uppercase' }}
+                            />
+                            <button type="submit" className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <LogIn size={16} /> Join
+                            </button>
+                        </form>
+                    </>
+                )}
+
+                {roomError && (
+                    <p style={{ color: 'var(--danger)', fontSize: '0.85rem', margin: 0 }}>{roomError}</p>
+                )}
             </div>
 
             {/* History Panel */}
