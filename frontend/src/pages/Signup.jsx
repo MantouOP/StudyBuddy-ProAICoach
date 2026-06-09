@@ -18,6 +18,18 @@ const Signup = () => {
 
     const navigate = useNavigate();
 
+    const sendWelcomeEmail = async ({ email: recipientEmail, username: recipientName }) => {
+        try {
+            await fetch('/api/send-welcome-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: recipientEmail, username: recipientName })
+            });
+        } catch (err) {
+            console.warn('Welcome email could not be sent:', err);
+        }
+    };
+
     const handleEmailSignup = async (e) => {
         e.preventDefault();
         setError('');
@@ -36,6 +48,11 @@ const Signup = () => {
                 email: userCredential.user.email,
                 totalStudyHours: 0,
                 friends: []
+            });
+
+            sendWelcomeEmail({
+                email: userCredential.user.email,
+                username: username.trim()
             });
 
             navigate('/');
@@ -84,6 +101,10 @@ const Signup = () => {
                 photoURL: pendingGoogleUser.photoURL || '',
                 totalStudyHours: 0,
                 friends: []
+            });
+            sendWelcomeEmail({
+                email: pendingGoogleUser.email,
+                username: googleUsername.trim()
             });
             navigate('/');
         } catch (err) {
