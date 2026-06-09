@@ -2,8 +2,47 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db, googleProvider, githubProvider } from '../firebase';
-import { BrainCircuit, Github } from 'lucide-react';
+import { auth, db, googleProvider, microsoftProvider, appleProvider, githubProvider } from '../firebase';
+import { Apple, BrainCircuit, Github } from 'lucide-react';
+
+const MicrosoftIcon = () => (
+    <span style={{
+        width: '18px',
+        height: '18px',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '2px',
+        flexShrink: 0
+    }} aria-hidden="true">
+        <span style={{ background: '#f25022' }} />
+        <span style={{ background: '#7fba00' }} />
+        <span style={{ background: '#00a4ef' }} />
+        <span style={{ background: '#ffb900' }} />
+    </span>
+);
+
+const socialProviders = [
+    {
+        name: 'Google',
+        provider: googleProvider,
+        icon: <img src="https://www.google.com/favicon.ico" alt="" style={{ width: '18px', height: '18px' }} />
+    },
+    {
+        name: 'Microsoft',
+        provider: microsoftProvider,
+        icon: <MicrosoftIcon />
+    },
+    {
+        name: 'Apple',
+        provider: appleProvider,
+        icon: <Apple size={18} />
+    },
+    {
+        name: 'GitHub',
+        provider: githubProvider,
+        icon: <Github size={18} />
+    }
+];
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -162,27 +201,19 @@ const Login = () => {
                         <hr style={{ flex: 1, borderColor: 'rgba(255,255,255,0.1)' }} />
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={() => handleSocialSignIn(googleProvider, 'Google')}
-                        className="btn-secondary"
-                        disabled={loading}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'white', color: '#333' }}
-                    >
-                        <img src="https://www.google.com/favicon.ico" alt="Google" style={{ width: '18px', height: '18px' }} />
-                        Sign in with Google
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() => handleSocialSignIn(githubProvider, 'GitHub')}
-                        className="btn-secondary"
-                        disabled={loading}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#111827', color: 'white' }}
-                    >
-                        <Github size={18} />
-                        Sign in with GitHub
-                    </button>
+                    {socialProviders.map(({ name, provider, icon }) => (
+                        <button
+                            key={name}
+                            type="button"
+                            onClick={() => handleSocialSignIn(provider, name)}
+                            className="btn-secondary"
+                            disabled={loading}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'white', color: '#1f2937' }}
+                        >
+                            {icon}
+                            Sign in with {name}
+                        </button>
+                    ))}
                 </form>
 
                 <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'var(--text-muted)' }}>
