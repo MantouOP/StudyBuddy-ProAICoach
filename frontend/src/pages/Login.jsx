@@ -41,6 +41,46 @@ const Login = () => {
         }
     };
 
+    const findBestProfileByEmail = async (emailToMatch, currentUid) => {
+        if (!emailToMatch) return null;
+
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', emailToMatch));
+        const snapshot = await getDocs(q);
+        let bestMatch = null;
+
+        snapshot.forEach((profileDoc) => {
+            if (profileDoc.id === currentUid) return;
+            const data = profileDoc.data();
+            if (!bestMatch || (data.totalStudyHours || 0) > (bestMatch.data.totalStudyHours || 0)) {
+                bestMatch = { id: profileDoc.id, data };
+            }
+        });
+
+        return bestMatch;
+    };
+
+    const recoverProgressProfile = async (user, currentProfile = null) => {
+        const matchedProfile = await findBestProfileByEmail(user.email, user.uid);
+        if (!matchedProfile) return false;
+
+        const currentHours = currentProfile?.totalStudyHours || 0;
+        const matchedHours = matchedProfile.data.totalStudyHours || 0;
+        if (matchedHours <= currentHours) return false;
+
+        await setDoc(doc(db, 'users', user.uid), {
+            ...matchedProfile.data,
+            uid: user.uid,
+            email: user.email || matchedProfile.data.email || '',
+            username: matchedProfile.data.username || user.displayName || user.email?.split('@')[0] || 'StudyBuddy',
+            photoURL: user.photoURL || matchedProfile.data.photoURL || '',
+            recoveredFromUid: matchedProfile.id,
+            recoveredAt: new Date().toISOString()
+        }, { merge: true });
+
+        return true;
+    };
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
@@ -92,8 +132,10 @@ const Login = () => {
             // Check if user document already exists
             const userDocRef = doc(db, 'users', user.uid);
             const userDocSnap = await getDoc(userDocRef);
+            const currentProfile = userDocSnap.exists() ? userDocSnap.data() : null;
+            const recoveredProfile = await recoverProgressProfile(user, currentProfile);
 
-            if (!userDocSnap.exists()) {
+            if (!userDocSnap.exists() && !recoveredProfile) {
                 // Determine a username to save (fallback to email prefix if display name is null)
                 let usernameToSave = user.displayName;
                 if (!usernameToSave) {

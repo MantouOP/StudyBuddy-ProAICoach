@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, githubProvider } from '../firebase';
 import { BrainCircuit, Github } from 'lucide-react';
 
@@ -47,6 +47,46 @@ const Signup = () => {
         }
     };
 
+    const findBestProfileByEmail = async (emailToMatch, currentUid) => {
+        if (!emailToMatch) return null;
+
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', emailToMatch));
+        const snapshot = await getDocs(q);
+        let bestMatch = null;
+
+        snapshot.forEach((profileDoc) => {
+            if (profileDoc.id === currentUid) return;
+            const data = profileDoc.data();
+            if (!bestMatch || (data.totalStudyHours || 0) > (bestMatch.data.totalStudyHours || 0)) {
+                bestMatch = { id: profileDoc.id, data };
+            }
+        });
+
+        return bestMatch;
+    };
+
+    const recoverProgressProfile = async (user, currentProfile = null) => {
+        const matchedProfile = await findBestProfileByEmail(user.email, user.uid);
+        if (!matchedProfile) return false;
+
+        const currentHours = currentProfile?.totalStudyHours || 0;
+        const matchedHours = matchedProfile.data.totalStudyHours || 0;
+        if (matchedHours <= currentHours) return false;
+
+        await setDoc(doc(db, 'users', user.uid), {
+            ...matchedProfile.data,
+            uid: user.uid,
+            email: user.email || matchedProfile.data.email || '',
+            username: matchedProfile.data.username || user.displayName || user.email?.split('@')[0] || 'StudyBuddy',
+            photoURL: user.photoURL || matchedProfile.data.photoURL || '',
+            recoveredFromUid: matchedProfile.id,
+            recoveredAt: new Date().toISOString()
+        }, { merge: true });
+
+        return true;
+    };
+
     const handleEmailSignup = async (e) => {
         e.preventDefault();
         setError('');
@@ -90,7 +130,10 @@ const Signup = () => {
             const userDocSnap = await getDoc(userDocRef);
 
             if (userDocSnap.exists()) {
+                await recoverProgressProfile(user, userDocSnap.data());
                 // Returning user — just navigate in
+                navigate('/');
+            } else if (await recoverProgressProfile(user)) {
                 navigate('/');
             } else {
                 // New Google user — require them to choose a username
@@ -112,6 +155,12 @@ const Signup = () => {
         }
         setLoading(true);
         try {
+            if (await recoverProgressProfile(pendingSocialUser)) {
+                navigate('/');
+                setLoading(false);
+                return;
+            }
+
             const userDocRef = doc(db, 'users', pendingSocialUser.uid);
             await setDoc(userDocRef, {
                 uid: pendingSocialUser.uid,
