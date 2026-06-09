@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../firebase';
 import { updateProfile } from 'firebase/auth';
 import { Mail, GraduationCap, BookOpen, Clock, Activity, Edit2, Check, Trophy, Medal, Star, Crown, Zap, Code, Terminal, Brain, Camera, Lock, X } from 'lucide-react';
 import { getBorderClass } from '../utils/borders';
@@ -208,6 +209,43 @@ const Profile = ({ user }) => {
             alert(`Failed to update avatar: ${error.message}`);
         } finally {
             setIsSavingAvatar(false);
+        }
+    };
+
+    const handleAvatarUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload an image file.');
+            e.target.value = '';
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+            alert('Please upload an image smaller than 2MB.');
+            e.target.value = '';
+            return;
+        }
+
+        setIsSavingAvatar(true);
+        try {
+            const extension = file.name.split('.').pop() || 'jpg';
+            const avatarRef = ref(storage, `profilePictures/${user.uid}/avatar-${Date.now()}.${extension}`);
+            await uploadBytes(avatarRef, file, { contentType: file.type });
+            const downloadUrl = await getDownloadURL(avatarRef);
+
+            await updateProfile(user, { photoURL: downloadUrl });
+            const docRef = doc(db, 'users', user.uid);
+            await updateDoc(docRef, { photoURL: downloadUrl });
+            setUserData(prev => ({ ...prev, photoURL: downloadUrl }));
+            setIsAvatarModalOpen(false);
+        } catch (error) {
+            console.error('Error uploading avatar:', error);
+            alert(`Failed to upload profile picture: ${error.message}`);
+        } finally {
+            setIsSavingAvatar(false);
+            e.target.value = '';
         }
     };
 
@@ -636,6 +674,29 @@ const Profile = ({ user }) => {
                                 <X size={24} />
                             </button>
                         </div>
+
+                        <label
+                            className="btn-primary"
+                            style={{
+                                marginBottom: '1.25rem',
+                                cursor: isSavingAvatar ? 'not-allowed' : 'pointer',
+                                opacity: isSavingAvatar ? 0.7 : 1
+                            }}
+                        >
+                            <Camera size={18} />
+                            {isSavingAvatar ? 'Uploading...' : 'Upload Profile Picture'}
+                            <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp,image/gif"
+                                onChange={handleAvatarUpload}
+                                disabled={isSavingAvatar}
+                                style={{ display: 'none' }}
+                            />
+                        </label>
+
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                            Upload a picture under 2MB, or choose one of the avatars below.
+                        </p>
 
                         <div style={{
                             overflowY: 'auto',
