@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function studyHoursNotDecreased() {
+      return !('totalStudyHours' in resource.data)
+        || !('totalStudyHours' in request.resource.data)
+        || request.resource.data.totalStudyHours >= resource.data.totalStudyHours;
+    }
+
+    function friendsNotBulkRemoved() {
+      return !('friends' in resource.data)
+        || !('friends' in request.resource.data)
+        || request.resource.data.friends.hasAll(resource.data.friends)
+        || request.resource.data.friends.size() >= resource.data.friends.size() - 1;
+    }
+
+    match /users/{userId} {
+      allow read, create: if signedIn();
+      allow update: if signedIn() && studyHoursNotDecreased() && friendsNotBulkRemoved();
+      allow delete: if false;
+
+      match /{document=**} {
+        allow read, write: if signedIn();
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if signedIn();
+    }
+  }
+}
