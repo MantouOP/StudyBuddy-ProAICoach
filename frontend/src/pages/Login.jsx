@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db, googleProvider } from '../firebase';
-import { BrainCircuit } from 'lucide-react';
+import { auth, db, googleProvider, githubProvider } from '../firebase';
+import { BrainCircuit, Github } from 'lucide-react';
 
 const Login = () => {
     const [username, setUsername] = useState('');
@@ -14,6 +14,7 @@ const Login = () => {
     const navigate = useNavigate();
 
     const sendWelcomeEmail = async ({ email: recipientEmail, username: recipientName }) => {
+        if (!recipientEmail) return;
         try {
             await fetch('/api/send-welcome-email', {
                 method: 'POST',
@@ -66,11 +67,11 @@ const Login = () => {
         setLoading(false);
     };
 
-    const handleGoogleSignIn = async () => {
+    const handleSocialSignIn = async (provider, providerName) => {
         setError('');
         setLoading(true);
         try {
-            const result = await signInWithPopup(auth, googleProvider);
+            const result = await signInWithPopup(auth, provider);
             const user = result.user;
 
             // Check if user document already exists
@@ -81,14 +82,15 @@ const Login = () => {
                 // Determine a username to save (fallback to email prefix if display name is null)
                 let usernameToSave = user.displayName;
                 if (!usernameToSave) {
-                    usernameToSave = user.email.split('@')[0];
+                    usernameToSave = user.email?.split('@')[0] || `${providerName.toLowerCase()}_${user.uid.slice(0, 6)}`;
                 }
 
                 // Initialize Firestore document for new Google user that hasn't signed up yet
                 await setDoc(userDocRef, {
                     uid: user.uid,
                     username: usernameToSave,
-                    email: user.email,
+                    email: user.email || '',
+                    photoURL: user.photoURL || '',
                     totalStudyHours: 0,
                     friends: []
                 });
@@ -101,7 +103,7 @@ const Login = () => {
 
             navigate('/');
         } catch (err) {
-            setError('Google sign-in failed: ' + err.message);
+            setError(`${providerName} sign-in failed: ` + err.message);
         }
         setLoading(false);
     };
@@ -162,13 +164,24 @@ const Login = () => {
 
                     <button
                         type="button"
-                        onClick={handleGoogleSignIn}
+                        onClick={() => handleSocialSignIn(googleProvider, 'Google')}
                         className="btn-secondary"
                         disabled={loading}
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'white', color: '#333' }}
                     >
                         <img src="https://www.google.com/favicon.ico" alt="Google" style={{ width: '18px', height: '18px' }} />
                         Sign in with Google
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => handleSocialSignIn(githubProvider, 'GitHub')}
+                        className="btn-secondary"
+                        disabled={loading}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#111827', color: 'white' }}
+                    >
+                        <Github size={18} />
+                        Sign in with GitHub
                     </button>
                 </form>
 

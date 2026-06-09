@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db, googleProvider } from '../firebase';
-import { BrainCircuit } from 'lucide-react';
+import { auth, db, googleProvider, githubProvider } from '../firebase';
+import { BrainCircuit, Github } from 'lucide-react';
 
 const Signup = () => {
     const [username, setUsername] = useState('');
@@ -12,13 +12,15 @@ const Signup = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // For Google sign-in username prompt
-    const [pendingGoogleUser, setPendingGoogleUser] = useState(null);
-    const [googleUsername, setGoogleUsername] = useState('');
+    // For social sign-in username prompt
+    const [pendingSocialUser, setPendingSocialUser] = useState(null);
+    const [pendingSocialProvider, setPendingSocialProvider] = useState('');
+    const [socialUsername, setSocialUsername] = useState('');
 
     const navigate = useNavigate();
 
     const sendWelcomeEmail = async ({ email: recipientEmail, username: recipientName }) => {
+        if (!recipientEmail) return;
         try {
             await fetch('/api/send-welcome-email', {
                 method: 'POST',
@@ -62,11 +64,11 @@ const Signup = () => {
         setLoading(false);
     };
 
-    const handleGoogleSignup = async () => {
+    const handleSocialSignup = async (provider, providerName) => {
         setError('');
         setLoading(true);
         try {
-            const result = await signInWithPopup(auth, googleProvider);
+            const result = await signInWithPopup(auth, provider);
             const user = result.user;
 
             const userDocRef = doc(db, 'users', user.uid);
@@ -77,34 +79,36 @@ const Signup = () => {
                 navigate('/');
             } else {
                 // New Google user — require them to choose a username
-                setPendingGoogleUser(user);
+                setPendingSocialUser(user);
+                setPendingSocialProvider(providerName);
+                setSocialUsername(user.displayName || user.email?.split('@')[0] || '');
             }
         } catch (err) {
-            setError('Google sign-in failed: ' + err.message);
+            setError(`${providerName} sign-up failed: ` + err.message);
         }
         setLoading(false);
     };
 
-    const handleFinishGoogleSignup = async (e) => {
+    const handleFinishSocialSignup = async (e) => {
         e.preventDefault();
         setError('');
-        if (googleUsername.trim().length < 3) {
+        if (socialUsername.trim().length < 3) {
             return setError('Username must be at least 3 characters.');
         }
         setLoading(true);
         try {
-            const userDocRef = doc(db, 'users', pendingGoogleUser.uid);
+            const userDocRef = doc(db, 'users', pendingSocialUser.uid);
             await setDoc(userDocRef, {
-                uid: pendingGoogleUser.uid,
-                username: googleUsername.trim(),
-                email: pendingGoogleUser.email,
-                photoURL: pendingGoogleUser.photoURL || '',
+                uid: pendingSocialUser.uid,
+                username: socialUsername.trim(),
+                email: pendingSocialUser.email || '',
+                photoURL: pendingSocialUser.photoURL || '',
                 totalStudyHours: 0,
                 friends: []
             });
             sendWelcomeEmail({
-                email: pendingGoogleUser.email,
-                username: googleUsername.trim()
+                email: pendingSocialUser.email,
+                username: socialUsername.trim()
             });
             navigate('/');
         } catch (err) {
@@ -114,7 +118,7 @@ const Signup = () => {
     };
 
     // --- Username prompt screen for new Google users ---
-    if (pendingGoogleUser) {
+    if (pendingSocialUser) {
         return (
             <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
                 <div className="glass-card fade-in" style={{ maxWidth: '400px', width: '100%', padding: '2.5rem' }}>
@@ -130,13 +134,13 @@ const Signup = () => {
 
                     {error && <div style={{ color: 'var(--danger)', marginBottom: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>{error}</div>}
 
-                    <form onSubmit={handleFinishGoogleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    <form onSubmit={handleFinishSocialSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <input
                             type="text"
-                            placeholder="Choose a username (min. 3 chars)"
+                            placeholder={`${pendingSocialProvider} username (min. 3 chars)`}
                             className="input-field"
-                            value={googleUsername}
-                            onChange={(e) => setGoogleUsername(e.target.value)}
+                            value={socialUsername}
+                            onChange={(e) => setSocialUsername(e.target.value)}
                             required
                             autoFocus
                         />
@@ -207,13 +211,24 @@ const Signup = () => {
 
                     <button
                         type="button"
-                        onClick={handleGoogleSignup}
+                        onClick={() => handleSocialSignup(googleProvider, 'Google')}
                         className="btn-secondary"
                         disabled={loading}
                         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'white', color: '#333' }}
                     >
                         <img src="https://www.google.com/favicon.ico" alt="Google" style={{ width: '18px', height: '18px' }} />
                         Sign up with Google
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => handleSocialSignup(githubProvider, 'GitHub')}
+                        className="btn-secondary"
+                        disabled={loading}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: '#111827', color: 'white' }}
+                    >
+                        <Github size={18} />
+                        Sign up with GitHub
                     </button>
                 </form>
 
