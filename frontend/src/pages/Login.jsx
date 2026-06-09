@@ -2,24 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db, googleProvider, microsoftProvider, appleProvider, githubProvider } from '../firebase';
-import { Apple, BrainCircuit, Github } from 'lucide-react';
-
-const MicrosoftIcon = () => (
-    <span style={{
-        width: '18px',
-        height: '18px',
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '2px',
-        flexShrink: 0
-    }} aria-hidden="true">
-        <span style={{ background: '#f25022' }} />
-        <span style={{ background: '#7fba00' }} />
-        <span style={{ background: '#00a4ef' }} />
-        <span style={{ background: '#ffb900' }} />
-    </span>
-);
+import { auth, db, googleProvider, githubProvider } from '../firebase';
+import { BrainCircuit, Github } from 'lucide-react';
 
 const socialProviders = [
     {
@@ -29,22 +13,10 @@ const socialProviders = [
         buttonStyle: { backgroundColor: 'white', color: '#333' }
     },
     {
-        name: 'Microsoft',
-        provider: microsoftProvider,
-        icon: <MicrosoftIcon />,
-        buttonStyle: { backgroundColor: 'rgba(15, 23, 42, 0.35)', color: 'white' }
-    },
-    {
-        name: 'Apple',
-        provider: appleProvider,
-        icon: <Apple size={18} />,
-        buttonStyle: { backgroundColor: 'rgba(15, 23, 42, 0.35)', color: 'white' }
-    },
-    {
         name: 'GitHub',
         provider: githubProvider,
         icon: <Github size={18} />,
-        buttonStyle: { backgroundColor: 'rgba(15, 23, 42, 0.35)', color: 'white' }
+        buttonStyle: { backgroundColor: 'white', color: '#333' }
     }
 ];
 
