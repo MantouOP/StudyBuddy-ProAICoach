@@ -28,8 +28,8 @@ service cloud.firestore {
       }
     }
 
-    match /{document=**} {
-      allow read, write: if signedIn();
+    match /{collectionId}/{document=**} {
+      allow read, write: if signedIn() && collectionId != 'users';
     }
   }
 }
