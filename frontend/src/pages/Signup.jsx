@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithRedirect } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, githubProvider } from '../firebase';
 import { BrainCircuit, Github } from 'lucide-react';
@@ -27,11 +27,6 @@ const Signup = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // For social sign-in username prompt
-    const [pendingSocialUser, setPendingSocialUser] = useState(null);
-    const [pendingSocialProvider, setPendingSocialProvider] = useState('');
-    const [socialUsername, setSocialUsername] = useState('');
-
     const navigate = useNavigate();
 
     const sendWelcomeEmail = async ({ email: recipientEmail, username: recipientName }) => {
@@ -45,46 +40,6 @@ const Signup = () => {
         } catch (err) {
             console.warn('Welcome email could not be sent:', err);
         }
-    };
-
-    const findBestProfileByEmail = async (emailToMatch, currentUid) => {
-        if (!emailToMatch) return null;
-
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('email', '==', emailToMatch));
-        const snapshot = await getDocs(q);
-        let bestMatch = null;
-
-        snapshot.forEach((profileDoc) => {
-            if (profileDoc.id === currentUid) return;
-            const data = profileDoc.data();
-            if (!bestMatch || (data.totalStudyHours || 0) > (bestMatch.data.totalStudyHours || 0)) {
-                bestMatch = { id: profileDoc.id, data };
-            }
-        });
-
-        return bestMatch;
-    };
-
-    const recoverProgressProfile = async (user, currentProfile = null) => {
-        const matchedProfile = await findBestProfileByEmail(user.email, user.uid);
-        if (!matchedProfile) return false;
-
-        const currentHours = currentProfile?.totalStudyHours || 0;
-        const matchedHours = matchedProfile.data.totalStudyHours || 0;
-        if (matchedHours <= currentHours) return false;
-
-        await setDoc(doc(db, 'users', user.uid), {
-            ...matchedProfile.data,
-            uid: user.uid,
-            email: user.email || matchedProfile.data.email || '',
-            username: matchedProfile.data.username || user.displayName || user.email?.split('@')[0] || 'StudyBuddy',
-            photoURL: user.photoURL || matchedProfile.data.photoURL || '',
-            recoveredFromUid: matchedProfile.id,
-            recoveredAt: new Date().toISOString()
-        }, { merge: true });
-
-        return true;
     };
 
     const handleEmailSignup = async (e) => {
@@ -123,115 +78,15 @@ const Signup = () => {
         setError('');
         setLoading(true);
         try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-
-            const userDocRef = doc(db, 'users', user.uid);
-            const userDocSnap = await getDoc(userDocRef);
-
-            if (userDocSnap.exists()) {
-                await recoverProgressProfile(user, userDocSnap.data());
-                // Returning user — just navigate in
-                navigate('/');
-            } else if (await recoverProgressProfile(user)) {
-                navigate('/');
-            } else {
-                // New Google user — require them to choose a username
-                setPendingSocialUser(user);
-                setPendingSocialProvider(providerName);
-                setSocialUsername(user.displayName || user.email?.split('@')[0] || '');
-            }
+            // Use redirect instead of popup to avoid popup-blocked errors
+            await signInWithRedirect(auth, provider);
+            // Page will redirect to Google/GitHub — no further code runs here.
+            // When the user returns, App.jsx's getRedirectResult handles profile setup.
         } catch (err) {
-            if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
-                setError('Popup was blocked by your browser. Attempting redirect sign-up...');
-                try {
-                    await signInWithRedirect(auth, provider);
-                } catch (redirectErr) {
-                    setError(`${providerName} redirect sign-up failed: ` + redirectErr.message);
-                }
-            } else {
-                setError(`${providerName} sign-up failed: ` + err.message);
-            }
+            setError(`${providerName} sign-up failed: ` + err.message);
+            setLoading(false);
         }
-        setLoading(false);
     };
-
-    const handleFinishSocialSignup = async (e) => {
-        e.preventDefault();
-        setError('');
-        if (socialUsername.trim().length < 3) {
-            return setError('Username must be at least 3 characters.');
-        }
-        setLoading(true);
-        try {
-            if (await recoverProgressProfile(pendingSocialUser)) {
-                navigate('/');
-                setLoading(false);
-                return;
-            }
-
-            const userDocRef = doc(db, 'users', pendingSocialUser.uid);
-            const existingUserDoc = await getDoc(userDocRef);
-            if (existingUserDoc.exists()) {
-                navigate('/');
-                setLoading(false);
-                return;
-            }
-
-            await setDoc(userDocRef, {
-                uid: pendingSocialUser.uid,
-                username: socialUsername.trim(),
-                email: pendingSocialUser.email || '',
-                photoURL: pendingSocialUser.photoURL || '',
-                totalStudyHours: 0,
-                friends: []
-            }, { merge: true });
-            sendWelcomeEmail({
-                email: pendingSocialUser.email,
-                username: socialUsername.trim()
-            });
-            navigate('/');
-        } catch (err) {
-            setError('Failed to save username: ' + err.message);
-        }
-        setLoading(false);
-    };
-
-    // --- Username prompt screen for new Google users ---
-    if (pendingSocialUser) {
-        return (
-            <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
-                <div className="glass-card fade-in" style={{ maxWidth: '400px', width: '100%', padding: '2.5rem' }}>
-                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                        <BrainCircuit size={48} color="var(--secondary-accent)" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                        <h2 className="text-gradient" style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>
-                            One Last Step!
-                        </h2>
-                        <p style={{ color: 'var(--text-muted)' }}>
-                            Choose a unique username for your StudyBuddy profile.
-                        </p>
-                    </div>
-
-                    {error && <div style={{ color: 'var(--danger)', marginBottom: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>{error}</div>}
-
-                    <form onSubmit={handleFinishSocialSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <input
-                            type="text"
-                            placeholder={`${pendingSocialProvider} username (min. 3 chars)`}
-                            className="input-field"
-                            value={socialUsername}
-                            onChange={(e) => setSocialUsername(e.target.value)}
-                            required
-                            autoFocus
-                        />
-                        <button type="submit" className="btn-primary" disabled={loading}>
-                            {loading ? 'Saving...' : 'Finish Sign Up'}
-                        </button>
-                    </form>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
@@ -313,4 +168,3 @@ const Signup = () => {
 };
 
 export default Signup;
-

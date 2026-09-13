@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect } from 'firebase/auth';
-import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, signInWithRedirect } from 'firebase/auth';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db, googleProvider, githubProvider } from '../firebase';
 import { BrainCircuit, Github } from 'lucide-react';
 
@@ -27,59 +27,6 @@ const Login = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-
-    const sendWelcomeEmail = async ({ email: recipientEmail, username: recipientName }) => {
-        if (!recipientEmail) return;
-        try {
-            await fetch('/api/send-welcome-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: recipientEmail, username: recipientName })
-            });
-        } catch (err) {
-            console.warn('Welcome email could not be sent:', err);
-        }
-    };
-
-    const findBestProfileByEmail = async (emailToMatch, currentUid) => {
-        if (!emailToMatch) return null;
-
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('email', '==', emailToMatch));
-        const snapshot = await getDocs(q);
-        let bestMatch = null;
-
-        snapshot.forEach((profileDoc) => {
-            if (profileDoc.id === currentUid) return;
-            const data = profileDoc.data();
-            if (!bestMatch || (data.totalStudyHours || 0) > (bestMatch.data.totalStudyHours || 0)) {
-                bestMatch = { id: profileDoc.id, data };
-            }
-        });
-
-        return bestMatch;
-    };
-
-    const recoverProgressProfile = async (user, currentProfile = null) => {
-        const matchedProfile = await findBestProfileByEmail(user.email, user.uid);
-        if (!matchedProfile) return false;
-
-        const currentHours = currentProfile?.totalStudyHours || 0;
-        const matchedHours = matchedProfile.data.totalStudyHours || 0;
-        if (matchedHours <= currentHours) return false;
-
-        await setDoc(doc(db, 'users', user.uid), {
-            ...matchedProfile.data,
-            uid: user.uid,
-            email: user.email || matchedProfile.data.email || '',
-            username: matchedProfile.data.username || user.displayName || user.email?.split('@')[0] || 'StudyBuddy',
-            photoURL: user.photoURL || matchedProfile.data.photoURL || '',
-            recoveredFromUid: matchedProfile.id,
-            recoveredAt: new Date().toISOString()
-        }, { merge: true });
-
-        return true;
-    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -126,56 +73,15 @@ const Login = () => {
         setError('');
         setLoading(true);
         try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-
-            // Check if user document already exists
-            const userDocRef = doc(db, 'users', user.uid);
-            const userDocSnap = await getDoc(userDocRef);
-            const currentProfile = userDocSnap.exists() ? userDocSnap.data() : null;
-            const recoveredProfile = await recoverProgressProfile(user, currentProfile);
-
-            if (!userDocSnap.exists() && !recoveredProfile) {
-                // Determine a username to save (fallback to email prefix if display name is null)
-                let usernameToSave = user.displayName;
-                if (!usernameToSave) {
-                    usernameToSave = user.email?.split('@')[0] || `${providerName.toLowerCase()}_${user.uid.slice(0, 6)}`;
-                }
-
-                // Initialize Firestore document for new Google user that hasn't signed up yet
-                await setDoc(userDocRef, {
-                    uid: user.uid,
-                    username: usernameToSave,
-                    email: user.email || '',
-                    photoURL: user.photoURL || '',
-                    totalStudyHours: 0,
-                    friends: []
-                }, { merge: true });
-
-                sendWelcomeEmail({
-                    email: user.email,
-                    username: usernameToSave
-                });
-            }
-
-            navigate('/');
+            // Use redirect instead of popup to avoid popup-blocked errors
+            await signInWithRedirect(auth, provider);
+            // Page will redirect to Google/GitHub — no further code runs here.
+            // When the user returns, App.jsx's getRedirectResult handles profile setup.
         } catch (err) {
-            if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
-                setError('Popup was blocked by your browser. Attempting redirect sign-in...');
-                try {
-                    await signInWithRedirect(auth, provider);
-                } catch (redirectErr) {
-                    setError(`${providerName} redirect sign-in failed: ` + redirectErr.message);
-                }
-            } else {
-                setError(`${providerName} sign-in failed: ` + err.message);
-            }
+            setError(`${providerName} sign-in failed: ` + err.message);
+            setLoading(false);
         }
-        setLoading(false);
     };
-
-
-
 
     return (
         <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
