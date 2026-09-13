@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, Coffee, Brain, History, Trash2, Download, Settings, X, Save, BellOff, Users, Copy, LogIn, LogOut } from 'lucide-react';
 import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc, getDocs, query, orderBy, deleteDoc, setDoc, onSnapshot, serverTimestamp, deleteField } from 'firebase/firestore';

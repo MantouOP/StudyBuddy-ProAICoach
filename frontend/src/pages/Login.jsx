@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, githubProvider } from '../firebase';
 import { BrainCircuit, Github } from 'lucide-react';
@@ -160,7 +160,16 @@ const Login = () => {
 
             navigate('/');
         } catch (err) {
-            setError(`${providerName} sign-in failed: ` + err.message);
+            if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+                setError('Popup was blocked by your browser. Attempting redirect sign-in...');
+                try {
+                    await signInWithRedirect(auth, provider);
+                } catch (redirectErr) {
+                    setError(`${providerName} redirect sign-in failed: ` + redirectErr.message);
+                }
+            } else {
+                setError(`${providerName} sign-in failed: ` + err.message);
+            }
         }
         setLoading(false);
     };

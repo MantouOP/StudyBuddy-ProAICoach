@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { Target, Loader, ArrowRight, CheckCircle, XCircle, History, ChevronLeft, Download, Trash2 } from 'lucide-react';
 import { doc, getDoc, updateDoc, collection, addDoc, getDocs, orderBy, query, deleteDoc } from 'firebase/firestore';

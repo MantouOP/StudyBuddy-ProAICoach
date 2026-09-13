@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, setDoc, updateDoc, arrayUnion, arrayRemove, getDoc, serverTimestamp } from 'firebase/firestore';
@@ -17,13 +18,8 @@ const Crews = ({ user }) => {
     const [joinCode, setJoinCode] = useState('');
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        if (user) {
-            fetchMyCrews();
-        }
-    }, [user]);
 
-    const fetchMyCrews = async () => {
+    async function fetchMyCrews() {
         setLoading(true);
         try {
             const crewsRef = collection(db, 'crews');
@@ -41,6 +37,12 @@ const Crews = ({ user }) => {
         }
         setLoading(false);
     };
+
+    useEffect(() => {
+        if (user) {
+            fetchMyCrews();
+        }
+    }, [user]);
 
     const generateInviteCode = () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

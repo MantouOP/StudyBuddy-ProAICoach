@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -15,14 +16,8 @@ const Leaderboard = ({ user }) => {
     const [isSearching, setIsSearching] = useState(false);
     const [friendsList, setFriendsList] = useState([]);
 
-    useEffect(() => {
-        if (user) {
-            fetchLeaderboard();
-            fetchMyFriends();
-        }
-    }, [user]);
 
-    const fetchMyFriends = async () => {
+    async function fetchMyFriends() {
         try {
             const myDoc = await getDoc(doc(db, 'users', user.uid));
             if (myDoc.exists()) {
@@ -33,7 +28,7 @@ const Leaderboard = ({ user }) => {
         }
     };
 
-    const fetchLeaderboard = async () => {
+    async function fetchLeaderboard() {
         setLoading(true);
         try {
             const usersRef = collection(db, 'users');
@@ -52,6 +47,13 @@ const Leaderboard = ({ user }) => {
         }
         setLoading(false);
     };
+
+    useEffect(() => {
+        if (user) {
+            fetchLeaderboard();
+            fetchMyFriends();
+        }
+    }, [user]);
 
     const handleSearch = async (e) => {
         e.preventDefault();

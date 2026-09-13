@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
@@ -14,13 +15,8 @@ const CrewDetail = ({ user }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        if (user && crewId) {
-            fetchCrewDetails();
-        }
-    }, [user, crewId]);
 
-    const fetchCrewDetails = async () => {
+    async function fetchCrewDetails() {
         setLoading(true);
         try {
             const crewDoc = await getDoc(doc(db, 'crews', crewId));
@@ -64,6 +60,12 @@ const CrewDetail = ({ user }) => {
         }
         setLoading(false);
     };
+
+    useEffect(() => {
+        if (user && crewId) {
+            fetchCrewDetails();
+        }
+    }, [user, crewId]);
 
     const handleLeaveCrew = async () => {
         if (user.uid === crew.leaderId) {

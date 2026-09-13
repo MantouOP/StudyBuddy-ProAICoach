@@ -8,25 +8,89 @@ import Profile from './pages/Profile';
 import StudyPlan from './pages/StudyPlan';
 import Quiz from './pages/Quiz';
 import Pomodoro from './pages/Pomodoro';
+
 import Leaderboard from './pages/Leaderboard';
 import FriendProfile from './pages/FriendProfile';
 import Crews from './pages/Crews';
 import CrewDetail from './pages/CrewDetail';
 import StudyAnalysis from './pages/StudyAnalysis';
 import { auth, db } from './firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, updateDoc } from 'firebase/firestore';
+import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
+import { doc, updateDoc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
+  // Helper to find a profile to merge (useful for new Google logins that use redirect)
+  const recoverProgressProfile = async (u) => {
+    if (!u.email) return false;
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', u.email));
+    const snapshot = await getDocs(q);
+    let bestMatch = null;
+    snapshot.forEach((profileDoc) => {
+        if (profileDoc.id === u.uid) return;
+        const data = profileDoc.data();
+        if (!bestMatch || (data.totalStudyHours || 0) > (bestMatch.data.totalStudyHours || 0)) {
+            bestMatch = { id: profileDoc.id, data };
+        }
     });
-    return () => unsub();
+    if (!bestMatch) return false;
+    await setDoc(doc(db, 'users', u.uid), {
+        ...bestMatch.data,
+        uid: u.uid,
+        email: u.email || bestMatch.data.email || '',
+        username: bestMatch.data.username || u.displayName || u.email?.split('@')[0] || 'StudyBuddy',
+        photoURL: u.photoURL || bestMatch.data.photoURL || '',
+        recoveredFromUid: bestMatch.id,
+        recoveredAt: new Date().toISOString()
+    }, { merge: true });
+    return true;
+  };
+
+  useEffect(() => {
+    let unsubscribe;
+
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          const u = result.user;
+          const userDocRef = doc(db, 'users', u.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          
+          if (!userDocSnap.exists()) {
+             const recovered = await recoverProgressProfile(u);
+             if (!recovered) {
+                let usernameToSave = u.displayName || u.email?.split('@')[0] || `user_${u.uid.slice(0, 6)}`;
+                await setDoc(userDocRef, {
+                    uid: u.uid,
+                    username: usernameToSave,
+                    email: u.email || '',
+                    photoURL: u.photoURL || '',
+                    totalStudyHours: 0,
+                    friends: []
+                }, { merge: true });
+                // Optional: send welcome email here if desired
+             }
+          }
+        }
+      } catch (err) {
+        console.error("Redirect sign-in error:", err);
+      }
+    };
+
+    checkRedirect().finally(() => {
+      unsubscribe = onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        setLoading(false);
+      });
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   // Update lastActive status

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, githubProvider } from '../firebase';
 import { BrainCircuit, Github } from 'lucide-react';
@@ -142,7 +142,16 @@ const Signup = () => {
                 setSocialUsername(user.displayName || user.email?.split('@')[0] || '');
             }
         } catch (err) {
-            setError(`${providerName} sign-up failed: ` + err.message);
+            if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+                setError('Popup was blocked by your browser. Attempting redirect sign-up...');
+                try {
+                    await signInWithRedirect(auth, provider);
+                } catch (redirectErr) {
+                    setError(`${providerName} redirect sign-up failed: ` + redirectErr.message);
+                }
+            } else {
+                setError(`${providerName} sign-up failed: ` + err.message);
+            }
         }
         setLoading(false);
     };

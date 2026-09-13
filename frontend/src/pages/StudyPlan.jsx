@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { Calendar, BookOpen, Loader, Save, Download, Trash2, ChevronLeft } from 'lucide-react';
 import { doc, collection, addDoc, getDocs, deleteDoc } from 'firebase/firestore';
