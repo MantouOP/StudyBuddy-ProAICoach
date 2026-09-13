@@ -50,47 +50,39 @@ function App() {
   };
 
   useEffect(() => {
-    let unsubscribe;
-
-    const checkRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-          const u = result.user;
-          const userDocRef = doc(db, 'users', u.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          
-          if (!userDocSnap.exists()) {
-             const recovered = await recoverProgressProfile(u);
-             if (!recovered) {
-                let usernameToSave = u.displayName || u.email?.split('@')[0] || `user_${u.uid.slice(0, 6)}`;
-                await setDoc(userDocRef, {
-                    uid: u.uid,
-                    username: usernameToSave,
-                    email: u.email || '',
-                    photoURL: u.photoURL || '',
-                    totalStudyHours: 0,
-                    friends: []
-                }, { merge: true });
-                // Optional: send welcome email here if desired
-             }
-          }
+    // Handle redirect result in parallel (for profile creation of new users)
+    getRedirectResult(auth).then(async (result) => {
+      if (result && result.user) {
+        const u = result.user;
+        const userDocRef = doc(db, 'users', u.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        
+        if (!userDocSnap.exists()) {
+           const recovered = await recoverProgressProfile(u);
+           if (!recovered) {
+              let usernameToSave = u.displayName || u.email?.split('@')[0] || `user_${u.uid.slice(0, 6)}`;
+              await setDoc(userDocRef, {
+                  uid: u.uid,
+                  username: usernameToSave,
+                  email: u.email || '',
+                  photoURL: u.photoURL || '',
+                  totalStudyHours: 0,
+                  friends: []
+              }, { merge: true });
+           }
         }
-      } catch (err) {
-        console.error("Redirect sign-in error:", err);
       }
-    };
-
-    checkRedirect().finally(() => {
-      unsubscribe = onAuthStateChanged(auth, (u) => {
-        setUser(u);
-        setLoading(false);
-      });
+    }).catch((err) => {
+      console.error("Redirect sign-in error:", err);
     });
 
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    // Listen for auth state changes immediately
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Update lastActive status
