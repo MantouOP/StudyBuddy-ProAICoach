@@ -5,6 +5,10 @@
             "destination": "/api/$1"
         },
         {
+            "source": "/__/auth/(.*)",
+            "destination": "https://studybuddy-e91b8.firebaseapp.com/__/auth/$1"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
